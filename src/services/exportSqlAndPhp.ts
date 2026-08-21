@@ -90,47 +90,124 @@ export function generatePhpInstallScript(): string {
 /**
  * ==============================================================================
  * ไฟล์: install.php
- * คำอธิบาย: ตัวติดตั้งฐานข้อมูลอัตโนมัติผ่านหน้าเว็บ (Web Auto-Installer)
- * รันไฟล์นี้ผ่านเบราว์เซอร์: http://localhost/sawangsung-sports/install.php
+ * คำอธิบาย: ตัวติดตั้งฐานข้อมูลอัตโนมัติผ่านหน้าเว็บ พร้อมช่องกรอกข้อมูลตั้งค่า DB
+ * รันไฟล์นี้ผ่านเบราว์เซอร์: http://your-domain.com/install.php
  * ==============================================================================
  */
 
-require_once __DIR__ . '/config/database.php';
+$currentHost = 'localhost';
+$currentPort = '3306';
+$currentName = 'swang_sung_krasang_sports';
+$currentUser = 'root';
+$currentPass = '';
+$currentCharset = 'utf8mb4';
+
+if (file_exists(__DIR__ . '/config/database.php')) {
+    @include_once __DIR__ . '/config/database.php';
+    if (defined('DB_HOST')) $currentHost = DB_HOST;
+    if (defined('DB_PORT')) $currentPort = DB_PORT;
+    if (defined('DB_NAME')) $currentName = DB_NAME;
+    if (defined('DB_USER')) $currentUser = DB_USER;
+    if (defined('DB_PASS')) $currentPass = DB_PASS;
+    if (defined('DB_CHARSET')) $currentCharset = DB_CHARSET;
+}
 
 $message = '';
 $status = 'READY';
+$details = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['auto'])) {
-    try {
-        $pdo = null;
-        // 1. ตรวจสอบการเชื่อมต่อแบบ Direct Database (Shared Hosting / DirectAdmin / cPanel)
-        try {
-            $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-            ]);
-        } catch (PDOException $e) {
-            // 2. หากยังไม่มี DB และมีสิทธิ์สร้าง ให้ลองสร้าง DB
-            $rootPdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-            ]);
-            $rootPdo->exec("CREATE DATABASE IF NOT EXISTS \`" . DB_NAME . "\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-            $rootPdo->exec("USE \`" . DB_NAME . "\`;");
-            $pdo = $rootPdo;
-        }
+$formHost = isset($_POST['db_host']) ? trim($_POST['db_host']) : $currentHost;
+$formPort = isset($_POST['db_port']) ? trim($_POST['db_port']) : $currentPort;
+$formName = isset($_POST['db_name']) ? trim($_POST['db_name']) : $currentName;
+$formUser = isset($_POST['db_user']) ? trim($_POST['db_user']) : $currentUser;
+$formPass = isset($_POST['db_pass']) ? $_POST['db_pass'] : $currentPass;
+$formCharset = isset($_POST['db_charset']) ? trim($_POST['db_charset']) : $currentCharset;
 
-        $sqlPath = __DIR__ . '/database.sql';
-        if (!file_exists($sqlPath)) {
-            throw new Exception("ไม่พบไฟล์ database.sql ในไดเรกทอรีรูท");
-        }
-
-        $sql = file_get_contents($sqlPath);
-        $pdo->exec($sql);
-
-        $status = 'SUCCESS';
-        $message = "ติดตั้งฐานข้อมูล [" . DB_NAME . "] และนำเข้าข้อมูลโรงเรียน 12 แห่งในกลุ่มโรงเรียนสว่างสูงกระสังสำเร็จเรียบร้อยแล้ว!";
-    } catch (Exception $e) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (empty($formHost) || empty($formName) || empty($formUser)) {
         $status = 'ERROR';
-        $message = "เกิดข้อผิดพลาด: " . $e->getMessage();
+        $message = 'กรุณากรอกข้อมูล Database Host, Database Name และ Username ให้ครบถ้วน';
+    } else {
+        try {
+            $pdo = null;
+            // 1. ตรวจสอบการเชื่อมต่อไปยัง Database ที่ระบุโดยตรง
+            try {
+                $dsn = "mysql:host={$formHost};port={$formPort};dbname={$formName};charset={$formCharset}";
+                $pdo = new PDO($dsn, $formUser, $formPass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$formCharset} COLLATE utf8mb4_unicode_ci"
+                ]);
+                $details[] = "✅ เชื่อมต่อฐานข้อมูล \`{$formName}\` บน Host \`{$formHost}\` สำเร็จ";
+            } catch (PDOException $e) {
+                // 2. หากยังไม่มี DB และมีสิทธิ์สร้าง ให้ลองสร้าง DB
+                try {
+                    $rootDsn = "mysql:host={$formHost};port={$formPort};charset={$formCharset}";
+                    $rootPdo = new PDO($rootDsn, $formUser, $formPass, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $rootPdo->exec("CREATE DATABASE IF NOT EXISTS \`{$formName}\` DEFAULT CHARACTER SET {$formCharset} COLLATE utf8mb4_unicode_ci;");
+                    $rootPdo->exec("USE \`{$formName}\`;");
+                    $pdo = $rootPdo;
+                    $details[] = "✅ ตรวจสอบ/สร้างฐานข้อมูล \`{$formName}\` สำเร็จ";
+                } catch (PDOException $createErr) {
+                    throw new Exception("ไม่สามารถเชื่อมต่อฐานข้อมูล \`{$formName}\` ได้: " . $createErr->getMessage());
+                }
+            }
+
+            // 3. รันคำสั่ง SQL
+            $sqlPath = __DIR__ . '/database.sql';
+            if (!file_exists($sqlPath)) {
+                throw new Exception("ไม่พบไฟล์ database.sql ในไดเรกทอรี");
+            }
+
+            $sqlContent = file_get_contents($sqlPath);
+            $pdo->exec($sqlContent);
+            $details[] = "✅ นำเข้าโครงสร้างตาราง 13 ตาราง และข้อมูลโรงเรียน 12 แห่งสำเร็จ";
+
+            // 4. บันทึก config/database.php อัตโนมัติ
+            $configDir = __DIR__ . '/config';
+            if (!is_dir($configDir)) {
+                @mkdir($configDir, 0755, true);
+            }
+
+            $escapedPass = addcslashes($formPass, "'\\\\");
+            $configPhpContent = "<?php
+define('DB_HOST', '" . addcslashes($formHost, "'\\\\") . "');
+define('DB_PORT', '" . addcslashes($formPort, "'\\\\") . "');
+define('DB_NAME', '" . addcslashes($formName, "'\\\\") . "');
+define('DB_USER', '" . addcslashes($formUser, "'\\\\") . "');
+define('DB_PASS', '" . $escapedPass . "');
+define('DB_CHARSET', '" . addcslashes($formCharset, "'\\\\") . "');
+
+class Database {
+    private static ?PDO \\$instance = null;
+
+    public static function getConnection(): PDO {
+        if (self::\\$instance === null) {
+            \\$dsn = \"mysql:host=\" . DB_HOST . \";port=\" . DB_PORT . \";dbname=\" . DB_NAME . \";charset=\" . DB_CHARSET;
+            \\$options = [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => \"SET NAMES \" . DB_CHARSET . \" COLLATE utf8mb4_unicode_ci\"
+            ];
+            self::\\$instance = new PDO(\\$dsn, DB_USER, DB_PASS, \\$options);
+        }
+        return self::\\$instance;
+    }
+}
+?>";
+
+            @file_put_contents($configDir . '/database.php', $configPhpContent);
+            $details[] = "✅ บันทึกการตั้งค่าลงไฟล์ \`config/database.php\` เรียบร้อย";
+
+            $status = 'SUCCESS';
+            $message = "ติดตั้งฐานข้อมูล \`{$formName}\` และอัปเดตการตั้งค่าระบบเรียบร้อยแล้ว!";
+        } catch (Exception $e) {
+            $status = 'ERROR';
+            $message = $e->getMessage();
+            $details[] = "❌ " . $e->getMessage();
+        }
     }
 }
 ?>
@@ -139,57 +216,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['auto'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ติดตั้งฐานข้อมูลระบบแข่งขันกีฬา - กลุ่มโรงเรียนสว่างสูงกระสัง</title>
+    <title>ติดตั้งและกำหนดค่าฐานข้อมูล MySQL - กลุ่มโรงเรียนสว่างสูงกระสัง</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Prompt', sans-serif; }</style>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        h1, h2, h3, h4, .font-kanit { font-family: 'Kanit', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-xl w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
-        <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg shadow-blue-200">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16m-8 4v6m-3-3h6"/></svg>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <div class="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-6 sm:p-8 text-center">
+            <div class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                </svg>
             </div>
-            <h1 class="text-2xl font-bold text-slate-800">ระบบติดตั้งฐานข้อมูลอัตโนมัติ (PHP Auto Installer)</h1>
-            <p class="text-sm text-slate-500 mt-1">กลุ่มโรงเรียนสว่างสูงกระสัง ประจำปี 2569</p>
+            <h1 class="text-xl sm:text-2xl font-bold font-kanit">ตั้งค่าและติดตั้งฐานข้อมูล MySQL</h1>
+            <p class="text-xs sm:text-sm text-blue-100 mt-1">ระบบบริหารจัดการแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง (PHP 8.x + MySQL)</p>
         </div>
 
-        <?php if ($status === 'SUCCESS'): ?>
-            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-5 mb-6 text-sm">
-                <div class="font-bold flex items-center gap-2 mb-2 text-emerald-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    <?= htmlspecialchars($message) ?>
+        <div class="p-6 sm:p-8 space-y-6">
+            <?php if ($status === 'SUCCESS'): ?>
+                <div class="bg-emerald-50 border border-emerald-300 text-emerald-900 p-6 rounded-2xl space-y-3">
+                    <div class="flex items-center gap-3 font-bold text-base text-emerald-800">
+                        <span class="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center shrink-0">✓</span>
+                        <span><?= htmlspecialchars($message) ?></span>
+                    </div>
+                    <div class="text-xs space-y-1.5 pl-11 text-emerald-700">
+                        <?php foreach ($details as $d): ?><div><?= $d ?></div><?php endforeach; ?>
+                    </div>
                 </div>
-                <div class="mt-3 space-y-1.5 text-xs text-slate-600 bg-white/70 p-3 rounded-lg border border-emerald-100">
-                    <p>✅ สร้างตารางครบทั้ง 13 ตาราง (Competitions, Schools, Users, Students, Results ฯลฯ)</p>
-                    <p>✅ นำเข้าโรงเรียนครบ 12 แห่ง พร้อมรหัส SMIS 8 หลัก</p>
-                    <p>✅ สร้างบัญชีผู้ดูแลโรงเรียน 12 บัญชี (Username = SMIS, รหัสผ่านเริ่มต้น = 123456)</p>
-                    <p>✅ กำหนดเงื่อนไขบังคับเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก (Must Change Password)</p>
-                </div>
-            </div>
-            <a href="login.php" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-md transition">ไปที่หน้าเข้าสู่ระบบ (Login) &rarr;</a>
-        <?php elseif ($status === 'ERROR'): ?>
-            <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 mb-6 text-sm">
-                <?= htmlspecialchars($message) ?>
-            </div>
-        <?php endif; ?>
 
-        <?php if ($status !== 'SUCCESS'): ?>
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-xs text-slate-600 space-y-2">
-                <div class="font-semibold text-slate-700">พารามิเตอร์การเชื่อมต่อปัจจุบัน (config/database.php):</div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>Host: <span class="font-mono font-bold text-slate-800"><?= DB_HOST ?>:<?= DB_PORT ?></span></div>
-                    <div>Database: <span class="font-mono font-bold text-slate-800"><?= DB_NAME ?></span></div>
-                    <div>User: <span class="font-mono font-bold text-slate-800"><?= DB_USER ?></span></div>
-                    <div>Charset: <span class="font-mono font-bold text-slate-800"><?= DB_CHARSET ?></span></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <a href="index.php" class="py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl text-center shadow-lg transition flex items-center justify-center gap-2">
+                        <span>🏆</span> เข้าสู่หน้าหลัก (index.php)
+                    </a>
+                    <a href="login.php" class="py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl text-center shadow-lg transition flex items-center justify-center gap-2">
+                        <span>🔐</span> เข้าสู่ระบบ (login.php) &rarr;
+                    </a>
                 </div>
-            </div>
-            <form method="POST">
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-md shadow-blue-200 transition">
-                    🚀 เริ่มการติดตั้งฐานข้อมูลอัตโนมัติทันที
-                </button>
-            </form>
-        <?php endif; ?>
+            <?php else: ?>
+                <?php if ($status === 'ERROR'): ?>
+                    <div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl space-y-2 text-xs">
+                        <div class="font-bold text-sm text-rose-700">⚠️ ข้อผิดพลาด: <?= htmlspecialchars($message) ?></div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 space-y-1">
+                    <p class="font-bold flex items-center gap-1.5 text-amber-800"><span>💡</span> กรอกข้อมูลฐานข้อมูล MySQL ที่สร้างไว้ในโฮสติ้ง:</p>
+                    <p class="text-amber-800/80 leading-relaxed">
+                        ระบบจะทำการนำเข้าตาราง 13 ตาราง และบันทึกค่าลงในไฟล์ <code class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-mono font-bold">config/database.php</code> ให้โดยอัตโนมัติ
+                    </p>
+                </div>
+
+                <form method="POST" class="space-y-4 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                            <label class="block font-bold text-slate-700 mb-1">Database Host <span class="text-rose-500">*</span></label>
+                            <input type="text" name="db_host" value="<?= htmlspecialchars($formHost) ?>" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Port</label>
+                            <input type="text" name="db_port" value="<?= htmlspecialchars($formPort) ?>" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">ชื่อฐานข้อมูล (Database Name) <span class="text-rose-500">*</span></label>
+                        <input type="text" name="db_name" value="<?= htmlspecialchars($formName) ?>" required placeholder="เช่น schoolos12_sports" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Database Username <span class="text-rose-500">*</span></label>
+                            <input type="text" name="db_user" value="<?= htmlspecialchars($formUser) ?>" required placeholder="เช่น schoolos12_sawang" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Database Password</label>
+                            <input type="password" name="db_pass" value="<?= htmlspecialchars($formPass) ?>" placeholder="รหัสผ่านฐานข้อมูล" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Charset</label>
+                        <input type="text" name="db_charset" value="<?= htmlspecialchars($formCharset) ?>" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm">
+                    </div>
+
+                    <div class="pt-3">
+                        <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-2xl transition shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                            <span>🚀</span> บันทึกการตั้งค่า & เริ่มการติดตั้งฐานข้อมูลทันที
+                        </button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+        <div class="bg-slate-50 p-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
+            ระบบบริหารจัดการแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง &bull; รองรับ PHP 8.x + MySQL / MariaDB
+        </div>
     </div>
 </body>
 </html>`;
@@ -609,15 +733,19 @@ export function generatePhpReadme(): string {
 
 ## 🚀 วิธีติดตั้งฐานข้อมูลอัตโนมัติ (Automatic Database Installation)
 
-### วิธีที่ 1: ติดตั้งผ่านหน้าเว็บอัตโนมัติ (แนะนำ)
-1. เปิดไฟล์ \`config/database.php\` เพื่อตรวจสอบหรือปรับแต่ง User/Password ของ MySQL
-2. เปิดเบราว์เซอร์ไปยัง URL: \`http://localhost/sawangsung-sports/install.php\`
-3. กดปุ่ม **"🚀 เริ่มการติดตั้งฐานข้อมูลอัตโนมัติทันที"**
-4. ระบบจะสร้าง Database \`swang_sung_krasang_sports\`, สร้างตารางทั้งหมด 13 ตาราง, และนำเข้าโรงเรียน 12 แห่งและบัญชี SMIS ให้ทันที!
+### วิธีที่ 1: ติดตั้งผ่านหน้าเว็บอัตโนมัติ (Web Installer - แนะนำและสะดวกที่สุด)
+1. อัปโหลดไฟล์ทั้งหมดขึ้นเซิร์ฟเวอร์ (เช่น public_html หรือ htdocs)
+2. สร้างฐานข้อมูลและ User ใน Control Panel ของโฮสติ้ง (เช่น DirectAdmin / cPanel)
+3. เปิดเบราว์เซอร์ไปยัง URL: \`http://your-domain.com/install.php\`
+4. กรอกข้อมูล Host, Port, Database Name, Username และ Password ของฐานข้อมูลที่คุณสร้างไว้
+5. กดปุ่ม **"🚀 บันทึกการตั้งค่า & เริ่มการติดตั้งฐานข้อมูลทันที"**
+6. ระบบจะทดสอบเชื่อมต่อ นำเข้าตารางทั้ง 13 ตาราง และบันทึกค่าลงใน \`config/database.php\` ให้อัตโนมัติทันที
 
-### วิธีที่ 2: ติดตั้งผ่าน phpMyAdmin / MySQL CLI
-1. สร้างฐานข้อมูล \`swang_sung_krasang_sports\` (Collation: \`utf8mb4_unicode_ci\`)
-2. Import ไฟล์ \`database.sql\`
+### วิธีที่ 2: ติดตั้งผ่าน phpMyAdmin บน Shared Web Hosting
+1. สร้างฐานข้อมูลผ่าน Control Panel ของโฮสติ้ง
+2. เปิด **phpMyAdmin** แล้วคลิกเลือก **ชื่อฐานข้อมูลของคุณในแถบซ้ายมือ**
+3. ไปที่แท็บ **"นำเข้า" (Import)**
+4. เลือกไฟล์ \`database.sql\` แล้วกดนำเข้าได้ทันที 100% (ไม่มีคำสั่ง CREATE DATABASE จึงไม่ติด Error #1044)
 `;
 }
 

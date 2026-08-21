@@ -61,12 +61,18 @@
 
 ## 🚀 ขั้นตอนการติดตั้งบนเซิร์ฟเวอร์ PHP/MySQL
 
-### วิธีที่ 1: ติดตั้งผ่านหน้าเว็บอัตโนมัติ (แนะนำ)
-1. อัปโหลดไฟล์ทั้งหมดขึ้นเซิร์ฟเวอร์ Apache/Nginx (DirectAdmin, cPanel, หรือ XAMPP ในโฟลเดอร์ `htdocs`/`public_html`)
-2. เปิดไฟล์ `config/database.php` ตรวจสอบชื่อ Host, User, และ Password ของ MySQL
+### วิธีที่ 1: ติดตั้งผ่านหน้าเว็บอัตโนมัติ (Web Installer - แนะนำและสะดวกที่สุด)
+1. อัปโหลดไฟล์ทั้งหมดขึ้นเซิร์ฟเวอร์ Apache/Nginx (DirectAdmin, cPanel, หรือ XAMPP ในโฟลเดอร์ `htdocs` หรือ `public_html`)
+2. สร้างฐานข้อมูลและ User ผ่าน Control Panel ของโฮสติ้งตามที่คุณต้องการ (เช่น `schoolos12_sports`, User `schoolos12_sawang`)
 3. เปิดเบราว์เซอร์ไปที่ `http://your-domain.com/install.php`
-4. กดปุ่ม **"🚀 เริ่มการติดตั้งฐานข้อมูลอัตโนมัติทันที"**
-5. ระบบจะสร้าง Database, ตารางทั้งหมด 13 ตาราง และนำเข้าข้อมูลตั้งต้น 12 โรงเรียนให้ทันที
+4. กรอกข้อมูลการเชื่อมต่อ MySQL ของคุณในช่องรับข้อมูล:
+   - **Database Host**: เช่น `localhost` หรือ `127.0.0.1`
+   - **Database Port**: เช่น `3306`
+   - **ชื่อฐานข้อมูล (Database Name)**: เช่น `schoolos12_sports` (ชื่อฐานข้อมูลที่คุณสร้างไว้)
+   - **Database Username**: เช่น `schoolos12_sawang`
+   - **Database Password**: รหัสผ่านฐานข้อมูลของคุณ
+5. กดปุ่ม **"🚀 บันทึกการตั้งค่า & เริ่มการติดตั้งฐานข้อมูลทันที"**
+6. ระบบจะทดสอบเชื่อมต่อ, นำเข้าโครงสร้างตาราง 13 ตาราง, ข้อมูลโรงเรียน 12 แห่ง และบันทึกค่าลงไฟล์ `config/database.php` ให้อัตโนมัติทันที 100%
 
 ### วิธีที่ 2: นำเข้าผ่าน phpMyAdmin (สำหรับ Shared Web Hosting / DirectAdmin / cPanel)
 1. สร้างฐานข้อมูลผ่าน Control Panel ของโฮสติ้ง (เช่น `schoolos12_sports` หรือชื่อที่ต้องการ) และผูกสิทธิ์ Database User
