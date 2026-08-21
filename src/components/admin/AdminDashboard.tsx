@@ -6,7 +6,8 @@ import {
   generateDatabaseSql, 
   generateReadmeDocumentation, 
   generateDatabaseConfigPhp, 
-  generatePhpInstallScript 
+  generatePhpInstallScript,
+  downloadPhpProjectZip
 } from '../../services/exportSqlAndPhp';
 import confetti from 'canvas-confetti';
 import {
@@ -680,14 +681,57 @@ export const AdminDashboard: React.FC = () => {
       {/* TAB 5: DATABASE & PHP EXPORT */}
       {activeTab === 'DATABASE' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-          <div>
-            <h2 className="text-lg font-bold font-['Kanit'] text-slate-900 flex items-center gap-2">
-              <Server className="w-5 h-5 text-blue-600" />
-              การเชื่อมต่อฐานข้อมูล MySQL และระบบติดตั้งอัตโนมัติ (PHP / PDO Support)
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              ตั้งค่าฐานข้อมูลที่ไฟล์ <span className="font-mono font-bold text-blue-600">config/database.php</span> พร้อมระบบ Auto-Installer ติดตั้งโครงสร้างและรายชื่อโรงเรียน 12 แห่งให้อัตโนมัติ
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
+            <div>
+              <h2 className="text-lg font-bold font-['Kanit'] text-slate-900 flex items-center gap-2">
+                <Server className="w-5 h-5 text-blue-600" />
+                โครงสร้างไฟล์ PHP 8.x + MySQL (PDO Architecture) สำหรับนำไป Deploy หรือ Flow ทันที
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ไฟล์ทั้งหมดถูกจัดเตรียมและสร้างไว้ในตำแหน่งพร้อมใช้งานบน Apache/Nginx (DirectAdmin / cPanel / XAMPP)
+              </p>
+            </div>
+
+            <button
+              onClick={async () => {
+                await downloadPhpProjectZip();
+                showNotification('กำลังดาวน์โหลดแพ็กเกจโปรเจกต์ PHP + MySQL (ZIP) ครบทุกไฟล์...');
+              }}
+              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 self-start md:self-auto shrink-0"
+            >
+              <Download className="w-4 h-4" /> 📦 ดาวน์โหลด Source Code ทั้งโปรเจกต์ (.ZIP)
+            </button>
+          </div>
+
+          {/* Directory Structure Visualizer */}
+          <div className="bg-slate-900 text-slate-200 p-5 rounded-2xl font-mono text-xs space-y-1.5 shadow-inner border border-slate-800">
+            <div className="text-amber-400 font-bold flex items-center gap-2 mb-2 pb-2 border-b border-slate-800 font-sans text-sm">
+              <span>📁</span> โครงสร้างไฟล์ในระบบ (Standalone PHP + MySQL Structure):
+            </div>
+            <div className="text-blue-300">├── config/</div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400 font-bold">database.php</span> <span className="text-slate-500">// PDO Singleton + Auto-Installer Check</span></div>
+            <div className="text-blue-300">├── includes/</div>
+            <div className="pl-6 text-slate-300">├── <span className="text-emerald-400">auth.php</span> <span className="text-slate-500">// Session & RBAC helper</span></div>
+            <div className="pl-6 text-slate-300">├── <span className="text-emerald-400">header.php</span> <span className="text-slate-500">// Responsive Navbar & Assets</span></div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400">footer.php</span></div>
+            <div className="text-blue-300">├── admin/</div>
+            <div className="pl-6 text-slate-300">├── <span className="text-emerald-400">index.php</span> <span className="text-slate-500">// Admin Dashboard</span></div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400">schools.php</span> <span className="text-slate-500">// จัดการ 12 โรงเรียน & รีเซ็ตรหัส SMIS</span></div>
+            <div className="text-blue-300">├── school/</div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400">index.php</span> <span className="text-slate-500">// แผงควบคุมโรงเรียน</span></div>
+            <div className="text-blue-300">├── judge/</div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400">index.php</span> <span className="text-slate-500">// กรรมการบันทึกผลการแข่งขัน & เหรียญ</span></div>
+            <div className="text-blue-300">├── api/</div>
+            <div className="pl-6 text-slate-300">└── <span className="text-emerald-400">results.php</span> <span className="text-slate-500">// JSON Endpoint สรุปคะแนนสด</span></div>
+            <div className="text-emerald-400">├── index.php <span className="text-slate-500">// หน้าแรก Public Portal & ตารางสรุปเหรียญ 12 รร.</span></div>
+            <div className="text-emerald-400">├── install.php <span className="text-slate-500">// Web Auto-Installer สร้างตาราง & Seed ให้อัตโนมัติ</span></div>
+            <div className="text-emerald-400">├── login.php <span className="text-slate-500">// เข้าระบบด้วยรหัส SMIS 8 หลัก (รหัสเริ่มต้น: 123456)</span></div>
+            <div className="text-emerald-400">├── logout.php</div>
+            <div className="text-emerald-400">├── change-password.php <span className="text-slate-500">// บังคับเปลี่ยนรหัสผ่านครั้งแรก</span></div>
+            <div className="text-emerald-400">├── verify.php <span className="text-slate-500">// ตรวจสอบเกียรติบัตร QR Code & Token</span></div>
+            <div className="text-amber-400 font-bold">├── database.sql <span className="text-slate-500">// MySQL Schema 13 ตาราง + ข้อมูลตั้งต้น 12 โรงเรียน</span></div>
+            <div className="text-slate-400">├── .htaccess <span className="text-slate-500">// Apache Config (UTF-8, Security Headers)</span></div>
+            <div className="text-slate-400">└── README.md <span className="text-slate-500">// คู่มือการติดตั้งและคำอธิบายระบบ</span></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
