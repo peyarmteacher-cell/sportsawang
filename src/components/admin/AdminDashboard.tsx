@@ -19,6 +19,8 @@ import {
   School as SchoolIcon,
   Trophy,
   Award,
+  Medal,
+  Clock,
   Database,
   Cloud,
   FileCode,
@@ -57,7 +59,7 @@ import {
 } from 'lucide-react';
 import { formatThaiDate } from '../../utils/thaiFormatter';
 
-export type AdminTabType = 'SETTINGS' | 'GOOGLE_GAS' | 'USERS' | 'SCHOOLS' | 'SPORTS' | 'CERTIFICATES' | 'DATABASE' | 'LOGS';
+export type AdminTabType = 'SETTINGS' | 'GOOGLE_GAS' | 'USERS' | 'SCHOOLS' | 'SPORTS' | 'RESULTS' | 'CERTIFICATES' | 'DATABASE' | 'LOGS';
 
 interface AdminDashboardProps {
   initialTab?: AdminTabType;
@@ -91,10 +93,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'SE
   const certificates = sportsStore.getCertificates();
   const logs = sportsStore.getLogs();
   const users = sportsStore.getUsers();
+  const results = sportsStore.getResults();
+  const registrations = sportsStore.getRegistrations();
+  const regStudents = sportsStore.getRegistrationStudents();
+  const allStudents = sportsStore.getStudents();
+  const allCoaches = sportsStore.getCoaches();
 
   // Settings State
   const [compForm, setCompForm] = useState<Competition>({ ...comp });
   const [savedSettings, setSavedSettings] = useState(false);
+
+  // Results Announcement Management State
+  const [resultSportFilter, setResultSportFilter] = useState<string>('ALL');
+  const [resultStatusFilter, setResultStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
+  const [resultSearchTerm, setResultSearchTerm] = useState<string>('');
+  const [selectedResultEventId, setSelectedResultEventId] = useState<string>('');
+  const [resultRank1SchoolId, setResultRank1SchoolId] = useState<string>('');
+  const [resultRank2SchoolId, setResultRank2SchoolId] = useState<string>('');
+  const [resultRank3SchoolId, setResultRank3SchoolId] = useState<string>('');
+  const [resultRank4SchoolId, setResultRank4SchoolId] = useState<string>('');
+  const [resultScore, setResultScore] = useState<string>('');
+  const [resultNote, setResultNote] = useState<string>('');
+  const [autoGenCerts, setAutoGenCerts] = useState<boolean>(true);
+  const [resultSaveSuccess, setResultSaveSuccess] = useState<boolean>(false);
 
   // User Management State
   const [userRoleFilter, setUserRoleFilter] = useState<string>('ALL');
@@ -679,6 +700,148 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'SE
     return true;
   });
 
+  // --- RESULTS ANNOUNCEMENT HANDLERS & HELPERS ---
+  const filteredResultEvents = events.filter((ev) => {
+    const sp = sports.find((s) => s.id === ev.sport_id);
+    if (resultSportFilter !== 'ALL' && ev.sport_id !== resultSportFilter) return false;
+    if (resultStatusFilter === 'PENDING' && ev.status === 'COMPLETED') return false;
+    if (resultStatusFilter === 'COMPLETED' && ev.status !== 'COMPLETED') return false;
+    if (resultSearchTerm) {
+      const term = resultSearchTerm.toLowerCase();
+      const matchName = ev.event_name.toLowerCase().includes(term);
+      const matchCode = ev.event_code.toLowerCase().includes(term);
+      const matchSport = sp?.sport_name.toLowerCase().includes(term);
+      if (!matchName && !matchCode && !matchSport) return false;
+    }
+    return true;
+  });
+
+  const selectedResultEvent = events.find((e) => e.id === selectedResultEventId);
+  const selectedEventRegistrations = registrations.filter(
+    (r) => r.event_id === selectedResultEventId
+  );
+  const registeredSchoolIds = selectedEventRegistrations.map((r) => r.school_id);
+  const candidateSchools = schools.filter((s) => registeredSchoolIds.includes(s.id));
+
+  const handleSelectResultEvent = (ev: Event) => {
+    setSelectedResultEventId(ev.id);
+    setResultSaveSuccess(false);
+
+    // Preload existing result if any
+    const existing = results.filter((r) => r.event_id === ev.id);
+    const r1 = existing.find((r) => r.rank === 1);
+    const r2 = existing.find((r) => r.rank === 2);
+    const r3 = existing.find((r) => r.rank === 3);
+    const r4 = existing.find((r) => r.rank === 4);
+
+    setResultRank1SchoolId(r1?.school_id || '');
+    setResultRank2SchoolId(r2?.school_id || '');
+    setResultRank3SchoolId(r3?.school_id || '');
+    setResultRank4SchoolId(r4?.school_id || '');
+    setResultScore(r1?.score || '');
+    setResultNote(r1?.note || '');
+  };
+
+  const handlePublishResults = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResultEventId) {
+      alert('กรุณาเลือกรายการแข่งขัน');
+      return;
+    }
+    if (!resultRank1SchoolId) {
+      alert('กรุณาเลือกโรงเรียนผู้ชนะเลิศ (เหรียญทอง 🥇)');
+      return;
+    }
+
+    const selectedEv = events.find((ev) => ev.id === selectedResultEventId);
+
+    const placements: Array<{
+      school_id: string;
+      rank: 1 | 2 | 3 | 4;
+      award: string;
+      medal: 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
+      score?: string;
+      note?: string;
+    }> = [
+      {
+        school_id: resultRank1SchoolId,
+        rank: 1,
+        award: 'ชนะเลิศ',
+        medal: 'GOLD',
+        score: resultScore,
+        note: resultNote
+      }
+    ];
+
+    if (resultRank2SchoolId) {
+      placements.push({
+        school_id: resultRank2SchoolId,
+        rank: 2,
+        award: 'รองชนะเลิศอันดับ 1',
+        medal: 'SILVER',
+        score: resultScore,
+        note: resultNote
+      });
+    }
+
+    if (resultRank3SchoolId) {
+      placements.push({
+        school_id: resultRank3SchoolId,
+        rank: 3,
+        award: 'รองชนะเลิศอันดับ 2',
+        medal: 'BRONZE',
+        score: resultScore,
+        note: resultNote
+      });
+    }
+
+    if (resultRank4SchoolId) {
+      placements.push({
+        school_id: resultRank4SchoolId,
+        rank: 4,
+        award: 'รางวัลชมเชย',
+        medal: 'NONE',
+        score: resultScore,
+        note: resultNote
+      });
+    }
+
+    sportsStore.recordEventResult(selectedResultEventId, placements);
+
+    let certMsg = '';
+    if (autoGenCerts) {
+      const certRes = sportsStore.generateCertificatesForEvent(selectedResultEventId);
+      certMsg = ` และสร้างเกียรติบัตรอัตโนมัติแล้ว ${certRes.createdCount} ใบ`;
+    }
+
+    // Confetti effect
+    confetti({
+      particleCount: 100,
+      spread: 80,
+      origin: { y: 0.6 }
+    });
+
+    setResultSaveSuccess(true);
+    showNotification(`🏆 บันทึกและประกาศผลการแข่งขัน "${selectedEv?.event_name}" สำเร็จ${certMsg}`);
+    setTimeout(() => setResultSaveSuccess(false), 5000);
+  };
+
+  const handleRevokeResult = (eventId: string, eventName: string) => {
+    if (window.confirm(`คุณต้องการยกเลิกการประกาศผลการแข่งขันรายการ "${eventName}" และคืนสถานะเป็นรอการแข่งขันใช่หรือไม่?`)) {
+      sportsStore.revokeEventResult(eventId);
+      if (selectedResultEventId === eventId) {
+        setSelectedResultEventId('');
+        setResultRank1SchoolId('');
+        setResultRank2SchoolId('');
+        setResultRank3SchoolId('');
+        setResultRank4SchoolId('');
+        setResultScore('');
+        setResultNote('');
+      }
+      showNotification(`ยกเลิกผลการแข่งขัน "${eventName}" เรียบร้อยแล้ว`);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Action Notification */}
@@ -756,6 +919,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'SE
             }`}
           >
             <Trophy className="w-3.5 h-3.5" /> กีฬา/กรีฑา ({events.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('RESULTS')}
+            className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'RESULTS' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Medal className="w-3.5 h-3.5 text-amber-600" /> 🏆 ประกาศผลการแข่งขัน
           </button>
 
           <button
@@ -1933,6 +2105,413 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'SE
         </div>
       )}
 
+      {/* TAB: RESULTS & MEDALS ANNOUNCEMENT */}
+      {activeTab === 'RESULTS' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-900/40 text-amber-100 rounded-full text-xs font-bold border border-amber-400/30 shadow-xs">
+                  <Trophy className="w-3.5 h-3.5 text-amber-300" /> ระบบประกาศผลและจัดอันดับรางวัลทางการ
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold font-['Kanit']">
+                  ประกาศผลการแข่งขันและสรุปคะแนนเหรียญรางวัล
+                </h2>
+                <p className="text-xs md:text-sm text-amber-100 font-['Prompt']">
+                  เลือกรายการแข่งขัน เลือกโรงเรียนที่ชนะเลิศ/รองชนะเลิศ ระบบจะสรุปตารางเหรียญรางวัลในหน้าหลักทันที และสามารถออกเกียรติบัตรให้นักเรียนและครูได้อัตโนมัติ
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 bg-amber-950/40 p-4 rounded-2xl border border-amber-300/20">
+                <div className="text-center px-3 border-r border-amber-400/30">
+                  <span className="block text-2xl font-black font-['Kanit'] text-amber-200">
+                    {events.filter((e) => e.status === 'COMPLETED').length}
+                  </span>
+                  <span className="text-[10px] text-amber-100 font-medium">ประกาศผลแล้ว</span>
+                </div>
+                <div className="text-center px-3">
+                  <span className="block text-2xl font-black font-['Kanit'] text-white">
+                    {events.filter((e) => e.status !== 'COMPLETED').length}
+                  </span>
+                  <span className="text-[10px] text-amber-200 font-medium">รอการแข่งขัน</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Event List (5 Cols) */}
+            <div className="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-sm md:text-base font-['Kanit'] flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" /> เลือกรายการแข่งขัน ({filteredResultEvents.length})
+                </h3>
+              </div>
+
+              {/* Filters */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={resultSearchTerm}
+                    onChange={(e) => setResultSearchTerm(e.target.value)}
+                    placeholder="ค้นหาชื่อรายการหรือรหัส..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={resultSportFilter}
+                    onChange={(e) => setResultSportFilter(e.target.value)}
+                    className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+                  >
+                    <option value="ALL">กีฬา: ทั้งหมด</option>
+                    {sports.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.sport_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={resultStatusFilter}
+                    onChange={(e) => setResultStatusFilter(e.target.value as any)}
+                    className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
+                  >
+                    <option value="ALL">สถานะ: ทั้งหมด</option>
+                    <option value="PENDING">⏳ รอประกาศผล</option>
+                    <option value="COMPLETED">✅ ประกาศผลแล้ว</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Event Cards Scroll */}
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                {filteredResultEvents.map((ev) => {
+                  const sp = sports.find((s) => s.id === ev.sport_id);
+                  const isSelected = ev.id === selectedResultEventId;
+                  const isDone = ev.status === 'COMPLETED';
+                  const evResults = results.filter((r) => r.event_id === ev.id);
+                  const goldRes = evResults.find((r) => r.rank === 1);
+                  const goldSchool = schools.find((s) => s.id === goldRes?.school_id);
+                  const evRegs = registrations.filter((r) => r.event_id === ev.id);
+
+                  return (
+                    <div
+                      key={ev.id}
+                      onClick={() => handleSelectResultEvent(ev)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-50/80 border-amber-500 ring-2 ring-amber-400 shadow-sm'
+                          : isDone
+                          ? 'bg-emerald-50/40 border-emerald-200 hover:border-emerald-400'
+                          : 'bg-slate-50/70 border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">{sp?.sport_icon || '🏅'}</span>
+                          <span className="font-mono text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            {ev.event_code}
+                          </span>
+                        </div>
+                        {isDone ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> ประกาศผลแล้ว
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> รอผล ({evRegs.length} โรงเรียนสมัคร)
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="font-bold text-slate-900 text-xs md:text-sm font-['Prompt'] line-clamp-1">
+                        {ev.event_name}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {sp?.sport_name} • {ev.gender === 'MALE' ? 'ชาย' : ev.gender === 'FEMALE' ? 'หญิง' : 'ผสม'} • {ev.grade}
+                      </p>
+
+                      {isDone && goldSchool && (
+                        <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between text-[11px]">
+                          <span className="text-amber-800 font-bold">🥇 {goldSchool.school_name}</span>
+                          {goldRes?.score && <span className="font-mono text-slate-500 font-medium">({goldRes.score})</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column: Result Recording & Announcement Form (7 Cols) */}
+            <div className="lg:col-span-7 space-y-6">
+              {selectedResultEvent ? (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-2">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        {selectedResultEvent.event_code}
+                      </span>
+                      <h3 className="text-lg font-bold text-slate-900 font-['Kanit'] mt-1">
+                        {selectedResultEvent.event_name}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        เพศ: {selectedResultEvent.gender === 'MALE' ? 'ชาย' : selectedResultEvent.gender === 'FEMALE' ? 'หญิง' : 'ผสม'} | ระดับ: {selectedResultEvent.grade} ({selectedResultEvent.age_group})
+                      </p>
+                    </div>
+
+                    {selectedResultEvent.status === 'COMPLETED' && (
+                      <button
+                        onClick={() => handleRevokeResult(selectedResultEvent.id, selectedResultEvent.event_name)}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-xl transition flex items-center gap-1 shrink-0"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> ยกเลิกผลการแข่งขัน
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Registered Schools & Athlete Details List */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+                    <h4 className="text-xs font-bold text-slate-800 font-['Kanit'] flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-600" />
+                        โรงเรียนและนักกีฬาที่ส่งเข้าร่วมแข่งขัน ({selectedEventRegistrations.length} โรงเรียน)
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-normal">
+                        (ข้อมูลที่ผู้ดูแลระบบแต่ละโรงเรียนลงทะเบียนเข้ามา)
+                      </span>
+                    </h4>
+
+                    {selectedEventRegistrations.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic py-1">
+                        ยังไม่มีโรงเรียนส่งรายชื่อนักกีฬาในรายการนี้
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        {selectedEventRegistrations.map((reg) => {
+                          const sch = schools.find((s) => s.id === reg.school_id);
+                          const linkedStudents = regStudents
+                            .filter((rs) => rs.registration_id === reg.id)
+                            .map((rs) => allStudents.find((s) => s.id === rs.student_id))
+                            .filter(Boolean);
+                          const coach = allCoaches.find((c) => c.id === reg.coach_id);
+
+                          return (
+                            <div key={reg.id} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
+                              <div className="font-bold text-slate-900 font-['Prompt'] flex items-center justify-between">
+                                <span>{sch?.school_name}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded">
+                                  {linkedStudents.length} คน
+                                </span>
+                              </div>
+                              {coach && (
+                                <p className="text-[11px] text-slate-600 mt-1">
+                                  ครูผู้ฝึกสอน: <strong>{coach.prefix}{coach.first_name} {coach.last_name}</strong>
+                                </p>
+                              )}
+                              <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                                นักกีฬา: {linkedStudents.map((st) => `${st?.first_name} ${st?.last_name}`).join(', ') || '-'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Winner Recording Form */}
+                  <form onSubmit={handlePublishResults} className="space-y-4">
+                    <h4 className="text-sm font-bold text-slate-900 font-['Kanit'] flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-500" /> กำหนดโรงเรียนที่ได้รับรางวัล
+                    </h4>
+
+                    {/* Rank 1: Gold Medal */}
+                    <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5">
+                      <label className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                        <span className="text-base">🥇</span> รางวัลชนะเลิศ (เหรียญทอง) <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        required
+                        value={resultRank1SchoolId}
+                        onChange={(e) => setResultRank1SchoolId(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="">-- กรุณาเลือกโรงเรียนชนะเลิศ --</option>
+                        {candidateSchools.length > 0 && (
+                          <optgroup label="โรงเรียนที่สมัครในรายการนี้">
+                            {candidateSchools.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.school_name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="โรงเรียนทั้งหมดในกลุ่ม">
+                          {schools.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.school_name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    {/* Rank 2: Silver Medal */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="text-base">🥈</span> รางวัลรองชนะเลิศ อันดับ 1 (เหรียญเงิน)
+                      </label>
+                      <select
+                        value={resultRank2SchoolId}
+                        onChange={(e) => setResultRank2SchoolId(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-slate-500"
+                      >
+                        <option value="">-- ไม่ระบุ / ไม่มี --</option>
+                        {candidateSchools.length > 0 && (
+                          <optgroup label="โรงเรียนที่สมัครในรายการนี้">
+                            {candidateSchools.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.school_name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="โรงเรียนทั้งหมดในกลุ่ม">
+                          {schools.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.school_name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    {/* Rank 3: Bronze Medal */}
+                    <div className="p-3.5 bg-amber-100/30 rounded-xl border border-amber-300/50 space-y-1.5">
+                      <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <span className="text-base">🥉</span> รางวัลรองชนะเลิศ อันดับ 2 (เหรียญทองแดง)
+                      </label>
+                      <select
+                        value={resultRank3SchoolId}
+                        onChange={(e) => setResultRank3SchoolId(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-amber-300/70 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="">-- ไม่ระบุ / ไม่มี --</option>
+                        {candidateSchools.length > 0 && (
+                          <optgroup label="โรงเรียนที่สมัครในรายการนี้">
+                            {candidateSchools.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.school_name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="โรงเรียนทั้งหมดในกลุ่ม">
+                          {schools.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.school_name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    {/* Rank 4: Consolation Prize */}
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <span className="text-base">🎖️</span> รางวัลชมเชย / อันดับ 4 (ถ้ามี)
+                      </label>
+                      <select
+                        value={resultRank4SchoolId}
+                        onChange={(e) => setResultRank4SchoolId(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800"
+                      >
+                        <option value="">-- ไม่ระบุ / ไม่มี --</option>
+                        {schools.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.school_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Score & Notes */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          ผลการแข่งขัน / คะแนน (Score / Time)
+                        </label>
+                        <input
+                          type="text"
+                          value={resultScore}
+                          onChange={(e) => setResultScore(e.target.value)}
+                          placeholder="เช่น 2 - 1, 12.45 วินาที, 3 - 0 เซต"
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          หมายเหตุการแข่งขัน
+                        </label>
+                        <input
+                          type="text"
+                          value={resultNote}
+                          onChange={(e) => setResultNote(e.target.value)}
+                          placeholder="เช่น คู่ชิงชนะเลิศสูสี ดวลจุดโทษ"
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Auto Certificate Checkbox */}
+                    <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="autoGenCertsAdmin"
+                        checked={autoGenCerts}
+                        onChange={(e) => setAutoGenCerts(e.target.checked)}
+                        className="mt-0.5 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <label htmlFor="autoGenCertsAdmin" className="text-xs text-blue-950 font-medium cursor-pointer">
+                        <strong>⚡ ออกเกียรติบัตรอัตโนมัติทันที</strong> (ระบบจะดึงรายชื่อนักเรียนและครูผู้ฝึกสอนของโรงเรียนที่ได้รับรางวัลไปสร้างเกียรติบัตรพร้อม QR Code ในระบบ E-Certificate ทันที)
+                      </label>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Trophy className="w-4 h-4 text-amber-200" />
+                        บันทึกและประกาศผลอย่างเป็นทางการ (Publish Official Results)
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-200 text-center space-y-3">
+                  <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto">
+                    <Trophy className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base font-['Kanit']">
+                    กรุณาเลือกรายการแข่งขันจากรายการด้านซ้าย
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    เลือกรายการแข่งขันที่ต้องการประกาศผล เพื่อกำหนดโรงเรียนที่ชนะเลิศ รองชนะเลิศ และคะแนนการแข่งขัน
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TAB 5: CERTIFICATES */}
       {activeTab === 'CERTIFICATES' && (
         <div className="space-y-6">
@@ -2388,13 +2967,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'SE
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold block mb-1">เบอร์โทรศัพท์</label>
+                  <input
+                    type="text"
+                    value={schoolFormData.phone}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, phone: e.target.value })}
+                    placeholder="044-xxxxxx"
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold block mb-1">ลิงก์ตราสัญลักษณ์ (Logo URL)</label>
+                  <input
+                    type="text"
+                    value={schoolFormData.logo}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, logo: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="font-semibold block mb-1">เบอร์โทรศัพท์</label>
+                <label className="font-semibold block mb-1">ที่อยู่ / สถานที่ตั้ง</label>
                 <input
                   type="text"
-                  value={schoolFormData.phone}
-                  onChange={(e) => setSchoolFormData({ ...schoolFormData, phone: e.target.value })}
-                  placeholder="044-xxxxxx"
+                  value={schoolFormData.address}
+                  onChange={(e) => setSchoolFormData({ ...schoolFormData, address: e.target.value })}
+                  placeholder="เช่น ต.สว่าง อ.กระสัง จ.บุรีรัมย์"
                   className="w-full p-2.5 border rounded-xl text-sm"
                 />
               </div>

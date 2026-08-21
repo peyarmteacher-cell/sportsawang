@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { sportsStore } from '../services/store';
 import { Sport, Event, Result } from '../types';
 import { Trophy, Users, Award, ChevronRight, CheckCircle2, Clock, Settings, Plus, Cloud, Shield } from 'lucide-react';
+import { SchoolDetailModal } from './SchoolDetailModal';
 
 interface PublicSportsProps {
   onNavigateToAdminSports?: (tab?: 'SPORTS' | 'GOOGLE_GAS') => void;
@@ -201,6 +202,14 @@ export const PublicSchools: React.FC<{ onSelectSchool?: (id: string) => void }> 
   const coaches = sportsStore.getCoaches();
   const medalSummaries = sportsStore.getSchoolMedalSummary();
   const results = sportsStore.getResults();
+  const [viewingSchoolId, setViewingSchoolId] = useState<string | null>(null);
+
+  const handleOpenDetail = (schoolId: string) => {
+    if (onSelectSchool) {
+      onSelectSchool(schoolId);
+    }
+    setViewingSchoolId(schoolId);
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -290,19 +299,25 @@ export const PublicSchools: React.FC<{ onSelectSchool?: (id: string) => void }> 
                 <span className="text-xs font-semibold text-blue-700">
                   อันดับที่ {medal?.rank || '-'}
                 </span>
-                {onSelectSchool && (
-                  <button
-                    onClick={() => onSelectSchool(sch.id)}
-                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
-                  >
-                    ดูผลงาน <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleOpenDetail(sch.id)}
+                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 text-xs font-semibold rounded-lg transition-all flex items-center gap-1 shadow-xs"
+                >
+                  ดูรายละเอียดผลงาน <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* School Detail Modal */}
+      {viewingSchoolId && (
+        <SchoolDetailModal
+          schoolId={viewingSchoolId}
+          onClose={() => setViewingSchoolId(null)}
+        />
+      )}
     </div>
   );
 };

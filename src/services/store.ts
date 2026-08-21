@@ -894,6 +894,26 @@ class SportsDataStore {
     this.notify();
   }
 
+  public revokeEventResult(eventId: string) {
+    const allResults = JSON.parse(localStorage.getItem(STORAGE_KEYS.RESULTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    const filteredResults = allResults.filter(
+      (r: Result) => !(r.competition_id === compId && r.event_id === eventId)
+    );
+    localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(filteredResults));
+
+    // Reset event status to OPEN
+    const events = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
+    const evIdx = events.findIndex((e: Event) => e.id === eventId);
+    if (evIdx >= 0) {
+      events[evIdx].status = 'OPEN';
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+    }
+
+    this.logActivity('REVOKE_RESULT', 'results', eventId, `ยกเลิกการประกาศผลการแข่งขันรายการ ID: ${eventId}`);
+    this.notify();
+  }
+
   // Sequential Certificate Number Allocation (Simulating Database Transaction & Lock)
   private getNextCertificateNumber(): string {
     const prefix = this.getSetting('CERTIFICATE_PREFIX', 'สสก.2569-');

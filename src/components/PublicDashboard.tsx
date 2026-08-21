@@ -3,6 +3,7 @@ import { sportsStore } from '../services/store';
 import { SchoolMedalSummary, Result, Event, Sport, School, Certificate } from '../types';
 import { DashboardCharts } from './DashboardCharts';
 import { CertificateModal } from './CertificateModal';
+import { SchoolDetailModal } from './SchoolDetailModal';
 import {
   Trophy,
   Medal,
@@ -47,6 +48,7 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
     results: Result[];
   } | null>(null);
   const [viewCert, setViewCert] = useState<Certificate | null>(null);
+  const [selectedSchoolIdForModal, setSelectedSchoolIdForModal] = useState<string | null>(null);
 
   // Aggregates
   const totalGold = medalSummaries.reduce((s, m) => s + m.gold, 0);
@@ -312,10 +314,15 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
-                        onClick={() => onSelectSchool && onSelectSchool(item.school_id)}
-                        className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50/70 hover:bg-indigo-100 rounded-lg transition-colors inline-flex items-center gap-1"
+                        onClick={() => {
+                          if (onSelectSchool) {
+                            onSelectSchool(item.school_id);
+                          }
+                          setSelectedSchoolIdForModal(item.school_id);
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50/70 hover:bg-indigo-600 hover:text-white rounded-lg transition-all inline-flex items-center gap-1 shadow-xs"
                       >
-                        ดูผล <ChevronRight className="w-3.5 h-3.5" />
+                        ดูรายละเอียด <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -602,6 +609,14 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
         <CertificateModal
           certificate={viewCert}
           onClose={() => setViewCert(null)}
+        />
+      )}
+
+      {/* School Detail Modal */}
+      {selectedSchoolIdForModal && (
+        <SchoolDetailModal
+          schoolId={selectedSchoolIdForModal}
+          onClose={() => setSelectedSchoolIdForModal(null)}
         />
       )}
     </div>
