@@ -7,7 +7,7 @@ import { PublicSports, PublicSchools } from './components/PublicSports';
 import { PublicVerifyCertificate } from './components/PublicVerifyCertificate';
 import { JudgeDashboard } from './components/judge/JudgeDashboard';
 import { SchoolDashboard } from './components/school/SchoolDashboard';
-import { AdminDashboard } from './components/admin/AdminDashboard';
+import { AdminDashboard, AdminTabType } from './components/admin/AdminDashboard';
 import { LoginModal } from './components/LoginModal';
 import {
   Trophy,
@@ -29,6 +29,7 @@ import {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('DASHBOARD');
+  const [adminInitialTab, setAdminInitialTab] = useState<AdminTabType>('SETTINGS');
   const [currentUser, setCurrentUser] = useState<User | null>(sportsStore.getCurrentUser());
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [selectedSchoolIdForFilter, setSelectedSchoolIdForFilter] = useState<string | undefined>(undefined);
@@ -353,7 +354,14 @@ export function App() {
           <PublicResultsView initialSchoolId={selectedSchoolIdForFilter} />
         )}
 
-        {activeTab === 'SPORTS' && <PublicSports />}
+        {activeTab === 'SPORTS' && (
+          <PublicSports
+            onNavigateToAdminSports={(tab) => {
+              setAdminInitialTab(tab || 'SPORTS');
+              setActiveTab('ADMIN_CONSOLE');
+            }}
+          />
+        )}
 
         {activeTab === 'SCHOOLS' && (
           <PublicSchools onSelectSchool={handleSelectSchool} />
@@ -373,7 +381,9 @@ export function App() {
           />
         )}
 
-        {activeTab === 'ADMIN_CONSOLE' && <AdminDashboard />}
+        {activeTab === 'ADMIN_CONSOLE' && (
+          <AdminDashboard initialTab={adminInitialTab} />
+        )}
       </main>
 
       {/* Footer */}

@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { sportsStore } from '../services/store';
 import { Sport, Event, Result } from '../types';
-import { Trophy, Users, Award, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import { Trophy, Users, Award, ChevronRight, CheckCircle2, Clock, Settings, Plus, Cloud, Shield } from 'lucide-react';
 
-export const PublicSports: React.FC = () => {
+interface PublicSportsProps {
+  onNavigateToAdminSports?: (tab?: 'SPORTS' | 'GOOGLE_GAS') => void;
+}
+
+export const PublicSports: React.FC<PublicSportsProps> = ({ onNavigateToAdminSports }) => {
+  const currentUser = sportsStore.getCurrentUser();
+  const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+
   const sports = sportsStore.getSports();
   const events = sportsStore.getEvents();
   const results = sportsStore.getResults();
@@ -15,6 +22,47 @@ export const PublicSports: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Super Admin / Admin Quick Management Banner */}
+      {isAdmin && onNavigateToAdminSports && (
+        <div className="p-4 bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 text-white rounded-2xl shadow-md border border-indigo-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-500/20 border border-indigo-400/30 rounded-xl flex items-center justify-center shrink-0 text-amber-300">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm font-['Kanit'] text-white">
+                  แผงควบคุมผู้ดูแลระบบ ({currentUser.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'})
+                </span>
+                <span className="px-2 py-0.5 bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold rounded-full">
+                  มีสิทธิ์แก้ไข
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200 mt-0.5">
+                คุณสามารถเพิ่ม/แก้ไขรายการแข่งขัน จัดการประเภทกีฬา และตั้งค่า Google Apps Script ได้
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => onNavigateToAdminSports('SPORTS')}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-300" />
+              จัดการกีฬา & รายการแข่งขัน
+            </button>
+            <button
+              onClick={() => onNavigateToAdminSports('GOOGLE_GAS')}
+              className="px-3.5 py-2 bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 text-xs font-semibold rounded-xl border border-indigo-600/50 transition flex items-center gap-1.5 shrink-0"
+            >
+              <Cloud className="w-3.5 h-3.5 text-cyan-300" />
+              ตั้งค่า Google Drive & GAS
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="text-center max-w-2xl mx-auto mb-6">
         <h1 className="text-2xl md:text-3xl font-bold font-['Kanit'] text-slate-900">
           ประเภทกีฬาและรายการแข่งขัน

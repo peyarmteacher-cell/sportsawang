@@ -19,6 +19,7 @@ export interface Competition {
   header_bg_image?: string; // Custom Header Banner Image URL or base64
   google_drive_folder_id?: string; // Google Drive target folder ID
   google_slide_template_id?: string; // Google Slide template ID for certificate generation
+  google_apps_script_url?: string; // Google Apps Script Web App Deployment URL
   president_name?: string;
   director_name?: string;
   cert_prefix?: string;

@@ -12,11 +12,11 @@ export function generateDatabaseConfigPhp(): string {
  */
 
 // 1. โหลดการตั้งค่าจากตัวแปร Environment หรือกำหนดค่าคงที่
-define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
-define('DB_NAME', getenv('DB_NAME') ?: 'swang_sung_krasang_sports');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'schoolos12_sawang');
+define('DB_USER', getenv('DB_USER') ?: 'schoolos12_sawang');
+define('DB_PASS', getenv('DB_PASS') ?: 'GM$i5dassAd85_es');
 define('DB_CHARSET', 'utf8mb4');
 
 class Database {
@@ -97,9 +97,9 @@ export function generatePhpInstallScript(): string {
 
 $currentHost = 'localhost';
 $currentPort = '3306';
-$currentName = 'swang_sung_krasang_sports';
-$currentUser = 'root';
-$currentPass = '';
+$currentName = 'schoolos12_sawang';
+$currentUser = 'schoolos12_sawang';
+$currentPass = 'GM$i5dassAd85_es';
 $currentCharset = 'utf8mb4';
 
 if (file_exists(__DIR__ . '/config/database.php')) {
@@ -1156,6 +1156,13 @@ try {
   zip.file('update_database.sql', generateUpdateDatabaseSql());
   zip.file('update_database.php', generateUpdateDatabasePhp());
 
+  // Google Apps Script folder for Google Slides & Google Drive certificate generation
+  const gasFolder = zip.folder('google_apps_script');
+  if (gasFolder) {
+    gasFolder.file('Code.gs', generateGoogleAppsScriptCode());
+    gasFolder.file('README_GAS.md', generateGoogleAppsScriptReadme());
+  }
+
   // Generate zip and trigger browser download
   const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
@@ -1366,6 +1373,286 @@ try {
     </div>
 </body>
 </html>`;
+}
+
+/**
+ * โค้ด Google Apps Script (Code.gs) สำหรับสร้าง E-Certificate จาก Google Slides Template และบันทึกลง Google Drive
+ */
+export function generateGoogleAppsScriptCode(): string {
+  const comp = sportsStore.getCurrentCompetition();
+  const folderId = comp.google_drive_folder_id || '1A2B3C4D5E6F7G8H9I0J_SPORTS2569';
+  const templateId = comp.google_slide_template_id || '1X2Y3Z_SLIDES_CERT_TEMPLATE_2569';
+
+  return `/**
+ * ==============================================================================
+ * Google Apps Script for Automated Certificate Generation
+ * โค้ดสำหรับสร้างเกียรติบัตรอัตโนมัติจาก Google Slides และบันทึกลง Google Drive
+ * การแข่งขันกีฬากลุ่มโรงเรียนสังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต 3
+ * ==============================================================================
+ * 
+ * วิธีการติดตั้งและใช้งาน (Installation & Setup):
+ * 1. ไปที่ https://script.google.com แล้วคลิก "+ โครงการใหม่" (New Project)
+ * 2. วางโค้ดชุดนี้ทั้งหมดลงในไฟล์ Code.gs
+ * 3. ตรวจสอบค่า FOLDER_ID และ TEMPLATE_ID ให้ตรงกับ Google Drive ของท่าน
+ * 4. คลิก "ทำให้ใช้งานได้" (Deploy) > "การทำให้ใช้งานได้รายการใหม่" (New deployment)
+ * 5. เลือกประเภท: "เว็บแอป" (Web app)
+ *    - ดำเนินการในฐานะ (Execute as): "ฉัน" (Me)
+ *    - ผู้ที่มีสิทธิ์เข้าถึง (Who has access): "ทุกคน" (Anyone)
+ * 6. คลิก "ทำให้ใช้งานได้" (Deploy) แล้วคัดลอก "URL เว็บแอป" (Web App URL)
+ * 7. นำ Web App URL ไปวางในเมนูตั้งค่า "Google Apps Script URL" ในระบบ Super Admin
+ */
+
+// ค่าเริ่มต้นโฟลเดอร์และแม่แบบสไลด์ (สามารถส่ง override มาจากเว็บได้)
+var DEFAULT_FOLDER_ID = "${folderId}";
+var DEFAULT_TEMPLATE_ID = "${templateId}";
+
+/**
+ * รับคำสั่ง POST จากระบบเว็บไซต์
+ */
+function doPost(e) {
+  try {
+    var contents = e.postData ? e.postData.contents : "{}";
+    var data = JSON.parse(contents);
+    var action = data.action || "GENERATE_CERTIFICATE";
+
+    // 1. ทดสอบการเชื่อมต่อระบบ
+    if (action === "TEST_CONNECTION") {
+      return responseJson({
+        status: "SUCCESS",
+        message: "เชื่อมต่อกับ Google Apps Script สำเร็จและพร้อมใช้งาน!",
+        server_time: new Date().toLocaleString("th-TH"),
+        target_folder: data.folder_id || DEFAULT_FOLDER_ID
+      });
+    }
+
+    // 2. สร้างเกียรติบัตรรายฉบับ
+    if (action === "GENERATE_CERTIFICATE") {
+      var result = createSingleCertificate(data);
+      return responseJson(result);
+    }
+
+    // 3. สร้างเกียรติบัตรแบบกลุ่ม (Batch)
+    if (action === "BATCH_GENERATE") {
+      var certificates = data.certificates || [];
+      var results = [];
+      for (var i = 0; i < certificates.length; i++) {
+        try {
+          var item = certificates[i];
+          var singleResult = createSingleCertificate(item);
+          results.push(singleResult);
+        } catch (itemErr) {
+          results.push({
+            status: "ERROR",
+            certificate_no: certificates[i].certificate_no || "N/A",
+            message: itemErr.toString()
+          });
+        }
+      }
+      return responseJson({
+        status: "SUCCESS",
+        total: certificates.length,
+        results: results
+      });
+    }
+
+    return responseJson({
+      status: "ERROR",
+      message: "ไม่พบคำสั่ง action ที่ระบุ: " + action
+    });
+
+  } catch (err) {
+    return responseJson({
+      status: "ERROR",
+      message: "เกิดข้อผิดพลาดในการประมวลผล: " + err.toString()
+    });
+  }
+}
+
+/**
+ * รับคำสั่ง GET สำหรับทดสอบ Health Check ผ่านเบราว์เซอร์
+ */
+function doGet(e) {
+  return responseJson({
+    status: "ONLINE",
+    app_name: "ระบบสร้างเกียรติบัตรอัตโนมัติ Google Apps Script + Google Slides",
+    host: "Google Cloud Platform / Google Workspace",
+    time_th: new Date().toLocaleString("th-TH")
+  });
+}
+
+/**
+ * ฟังก์ชันหลักในการสร้าง PDF เกียรติบัตรจาก Google Slides Template
+ */
+function createSingleCertificate(data) {
+  var templateId = data.template_id || DEFAULT_TEMPLATE_ID;
+  var folderId = data.folder_id || DEFAULT_FOLDER_ID;
+
+  var certNo = data.certificate_no || "สพป.บร.3/2569-0001";
+  var recipientName = data.recipient_name || "ชื่อ-นามสกุล";
+  var schoolName = data.school_name || "ชื่อโรงเรียน";
+  var award = data.award || "รางวัลชนะเลิศ เหรียญทอง";
+  var eventName = data.event_name || "รายการแข่งขัน";
+  var academicYear = data.academic_year || "2569";
+  var issueDate = data.issue_date || new Date().toLocaleDateString("th-TH");
+  var verifyUrl = data.verify_url || "";
+  var presidentName = data.president_name || "${(comp.president_name || '').replace(/"/g, '\\"')}";
+  var directorName = data.director_name || "${(comp.director_name || '').replace(/"/g, '\\"')}";
+
+  // ตรวจสอบ Google Drive Folder
+  var targetFolder;
+  try {
+    targetFolder = DriveApp.getFolderById(folderId);
+  } catch (fe) {
+    throw new Error("ไม่พบ Google Drive Folder ID: " + folderId);
+  }
+
+  // ตรวจสอบ Google Slides Template
+  var templateFile;
+  try {
+    templateFile = DriveApp.getFileById(templateId);
+  } catch (te) {
+    throw new Error("ไม่พบ Google Slides Template ID: " + templateId);
+  }
+
+  // 1. ทำการ Copy แม่แบบ Slide เป็นไฟล์ชั่วคราว
+  var sanitizedCertNo = certNo.replace(/[\/\\?%*:|"<>]/g, "_");
+  var tempFileName = "CERT_TEMP_" + sanitizedCertNo + "_" + recipientName;
+  var copyFile = templateFile.makeCopy(tempFileName, targetFolder);
+  var copyId = copyFile.getId();
+  var slidePresentation = SlidesApp.openById(copyId);
+
+  // 2. แทนที่ตัวแปร Placeholder ในสไลด์
+  var slides = slidePresentation.getSlides();
+  if (slides.length > 0) {
+    var mainSlide = slides[0];
+
+    // รายการตัวแปรแท็กที่รองรับ
+    var replacements = [
+      ["{{certificate_no}}", certNo],
+      ["{{cert_no}}", certNo],
+      ["{{recipient_name}}", recipientName],
+      ["{{name}}", recipientName],
+      ["{{school_name}}", schoolName],
+      ["{{school}}", schoolName],
+      ["{{award}}", award],
+      ["{{event_name}}", eventName],
+      ["{{event}}", eventName],
+      ["{{academic_year}}", academicYear],
+      ["{{year}}", academicYear],
+      ["{{issue_date}}", issueDate],
+      ["{{date}}", issueDate],
+      ["{{verify_url}}", verifyUrl],
+      ["{{president_name}}", presidentName],
+      ["{{director_name}}", directorName]
+    ];
+
+    for (var r = 0; r < replacements.length; r++) {
+      mainSlide.replaceAllText(replacements[r][0], replacements[r][1]);
+    }
+  }
+
+  // บันทึกและปิดสไลด์ชั่วคราว
+  slidePresentation.saveAndClose();
+
+  // 3. แปลงสไลด์เป็นไฟล์ PDF คุณภาพสูง
+  var pdfBlob = copyFile.getAs("application/pdf");
+  var finalPdfName = "เกียรติบัตร_" + sanitizedCertNo + "_" + recipientName + ".pdf";
+  pdfBlob.setName(finalPdfName);
+
+  // บันทึก PDF เข้าสู่โฟลเดอร์ Google Drive
+  var pdfFile = targetFolder.createFile(pdfBlob);
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  // 4. ลบไฟล์ Slide ชั่วคราวทิ้ง เพื่อไม่ให้เปลืองพื้นที่ Drive
+  try {
+    DriveApp.getFileById(copyId).setTrashed(true);
+  } catch (trashErr) {
+    // ignore
+  }
+
+  var fileId = pdfFile.getId();
+  var webViewLink = "https://drive.google.com/file/d/" + fileId + "/view?usp=sharing";
+  var directDownloadLink = "https://drive.google.com/uc?export=download&id=" + fileId;
+
+  return {
+    status: "SUCCESS",
+    certificate_no: certNo,
+    recipient_name: recipientName,
+    school_name: schoolName,
+    drive_file_id: fileId,
+    file_name: finalPdfName,
+    pdf_url: webViewLink,
+    download_url: directDownloadLink,
+    created_at: new Date().toISOString()
+  };
+}
+
+/**
+ * ตัวช่วยส่งค่ากลับแบบ JSON Response พร้อม Header CORS
+ */
+function responseJson(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+`;
+}
+
+/**
+ * เอกสารแนะนำขั้นตอนการติดตั้ง Google Apps Script สำหรับผู้ดูแลระบบ
+ */
+export function generateGoogleAppsScriptReadme(): string {
+  return `# คู่มือการติดตั้ง Google Apps Script สำหรับออกเกียรติบัตรอัตโนมัติ
+
+ระบบนี้รองรับการเชื่อมต่อกับ **Google Apps Script**, **Google Slides** และ **Google Drive** เพื่อสร้างเกียรติบัตร PDF อัตโนมัติและจัดเก็บไฟล์บนคลาวด์
+
+---
+
+## 📌 ขั้นตอนที่ 1: เตรียมแม่แบบเกียรติบัตรใน Google Slides
+1. สร้างไฟล์สไลด์ใน [Google Slides](https://slides.google.com) ขนาด **A4 แนวนอน (29.7 x 21 ซม.)**
+2. ตกแต่งพื้นหลัง กรอบ ตราสัญลักษณ์ ลายเซ็นให้สวยงาม
+3. ใส่ข้อความกล่องข้อความ (Text Box) ด้วยแท็กตัวแปรดังนี้:
+   - \`{{certificate_no}}\` = เลขที่เกียรติบัตร (เช่น สพป.บร.3/2569-0001)
+   - \`{{recipient_name}}\` = ชื่อ-นามสกุลนักเรียน หรือครูผู้ฝึกสอน
+   - \`{{school_name}}\` = ชื่อโรงเรียน
+   - \`{{award}}\` = รางวัลที่ได้รับ (เช่น รางวัลชนะเลิศ เหรียญทอง)
+   - \`{{event_name}}\` = ชื่อรายการแข่งขัน (เช่น วิ่ง 100 เมตร ชาย)
+   - \`{{academic_year}}\` = ปีการศึกษา (2569)
+   - \`{{issue_date}}\` = วันที่ออกเกียรติบัตร
+   - \`{{verify_url}}\` = URL สำหรับสแกน QR Code ตรวจสอบ
+4. คัดลอก **Google Slide Template ID** จากแถบ URL:
+   \`https://docs.google.com/presentation/d/[TEMPLATE_ID]/edit\`
+
+---
+
+## 📁 ขั้นตอนที่ 2: เตรียมโฟลเดอร์ Google Drive
+1. สร้างโฟลเดอร์ใหม่ใน Google Drive ตั้งชื่อเช่น \`เกียรติบัตรกีฬา_2569\`
+2. คลิกขวาที่โฟลเดอร์ > แชร์ (Share) > เลือก **"ทุกคนที่มีลิงก์ (Anyone with the link)"** เป็นผู้มีสิทธิ์ดู
+3. คัดลอก **Google Drive Folder ID** จากแถบ URL:
+   \`https://drive.google.com/drive/folders/[FOLDER_ID]\`
+
+---
+
+## ⚡ ขั้นตอนที่ 3: ติดตั้ง Google Apps Script
+1. ไปที่ [script.google.com](https://script.google.com) > คลิก **+ New Project (+ โครงการใหม่)**
+2. ลบโค้ดเดิม แล้วนำโค้ดจากไฟล์ \`Code.gs\` ไปวางทั้งหมด
+3. คลิก **Deploy (ทำให้ใช้งานได้)** > **New deployment (การทำให้ใช้งานได้รายการใหม่)**
+4. เลือกประเภทฟันเฟือง: **Web app (เว็บแอป)**
+   - **Execute as (ดำเนินการในฐานะ):** \`Me (ฉัน / อีเมลของคุณ)\`
+   - **Who has access (ผู้มีสิทธิ์เข้าถึง):** \`Anyone (ทุกคน)\`
+5. คลิก **Deploy** > ให้สิทธิ์การเข้าถึง Google Drive & Slides
+6. คัดลอก **Web App URL** ที่ได้ (ขึ้นต้นด้วย \`https://script.google.com/macros/s/.../exec\`)
+
+---
+
+## 🔗 ขั้นตอนที่ 4: นำ URL มาใส่ในระบบ Super Admin
+1. เปิดระบบเว็บไซต์กีฬา เข้าสู่ระบบด้วยบัญชี **Super Admin**
+2. ไปที่แท็บ **"ตั้งค่าระบบกีฬา & Google Drive / GAS"**
+3. วางค่า:
+   - **Google Apps Script Web App URL**
+   - **Google Drive Folder ID**
+   - **Google Slide Template ID**
+4. กดปุ่ม **"ทดสอบการเชื่อมต่อ Google Apps Script"** แล้วกด **"บันทึกการตั้งค่า"**
+`;
 }
 
 

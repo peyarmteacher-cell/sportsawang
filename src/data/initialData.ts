@@ -29,6 +29,7 @@ export const INITIAL_COMPETITIONS: Competition[] = [
     header_bg_image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1600&auto=format&fit=crop&q=80',
     google_drive_folder_id: '1aBcDeFgHiJkLmNoPqRsTuVwXyZ_SPORTS2569',
     google_slide_template_id: '1sL1dE_T3mpL4t3_Krasang_Cert_2569',
+    google_apps_script_url: 'https://script.google.com/macros/s/AKfycbx_SportsCertGoogleAppsScript/exec',
     president_name: 'นายสมเกียรติ สว่างวงศ์',
     director_name: 'ผู้อำนวยการสำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต 3',
     cert_prefix: 'สพป.บร.3/2569-',
