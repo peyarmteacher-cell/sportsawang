@@ -35,8 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_user'])) {
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $newId = 'user-' . uniqid();
         try {
-            $stmt = $pdo->prepare("INSERT INTO users (id, school_id, username, password, full_name, role, status, must_change_password) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', 1)");
-            $stmt->execute([$newId, $schoolId, $username, $hash, $fullName, $role]);
+            $email = $username . '@sawang.ac.th';
+            $stmt = $pdo->prepare("INSERT INTO users (id, school_id, username, password, full_name, email, role, status, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 1)");
+            $stmt->execute([$newId, $schoolId, $username, $hash, $fullName, $email, $role]);
             logActivity('ADD_USER', 'USERS', "เพิ่มผู้ใช้งาน: $username ($fullName)");
             $message = "เพิ่มผู้ใช้งาน \"$username\" เรียบร้อยแล้ว (รหัสผ่าน: $password)";
         } catch (Exception $e) {

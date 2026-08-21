@@ -86,27 +86,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_student'])) {
         $first = trim($_POST['first_name'] ?? '');
         $last = trim($_POST['last_name'] ?? '');
         $gender = trim($_POST['gender'] ?? 'MALE');
-        $grade = trim($_POST['grade_level'] ?? 'ป.4');
+        $grade = trim($_POST['grade_level'] ?? $_POST['grade'] ?? 'ป.4');
         $stuCode = trim($_POST['student_code'] ?? '');
         $birthDate = trim($_POST['birth_date'] ?? '2014-01-01');
 
         if ($first && $last) {
-            $stId = 'stu-' . uniqid();
-            $stmt = $pdo->prepare("
-                INSERT INTO students (id, school_id, student_code, prefix, first_name, last_name, gender, birth_date, grade_level, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-            ");
-            $stmt->execute([$stId, $schoolId, $stuCode ?: rand(10000, 99999), $prefix, $first, $last, $gender, $birthDate, $grade]);
-            $message = "เพิ่มข้อมูลนักเรียน \"$prefix$first $last\" เรียบร้อยแล้ว";
+            try {
+                $stId = 'stu-' . uniqid();
+                $stmt = $pdo->prepare("
+                    INSERT INTO students (id, competition_id, school_id, student_code, prefix, first_name, last_name, gender, birth_date, grade, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                ");
+                $stmt->execute([$stId, $compId, $schoolId, $stuCode ?: rand(10000, 99999), $prefix, $first, $last, $gender, $birthDate, $grade]);
+                logActivity('CREATE', 'students', "เพิ่มข้อมูลนักเรียน: $prefix$first $last");
+                $message = "เพิ่มข้อมูลนักเรียน \"$prefix$first $last\" เรียบร้อยแล้ว";
+            } catch (Exception $e) {
+                $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูลนักเรียน: " . $e->getMessage();
+            }
         }
     }
 }
 
 if (isset($_GET['delete_student_id'])) {
-    $delStId = $_GET['delete_student_id'];
-    $pdo->prepare("DELETE FROM registration_students WHERE student_id = ?")->execute([$delStId]);
-    $pdo->prepare("DELETE FROM students WHERE id = ? AND school_id = ?")->execute([$delStId, $schoolId]);
-    $message = "ลบข้อมูลนักเรียนเรียบร้อยแล้ว";
+    try {
+        $delStId = $_GET['delete_student_id'];
+        $pdo->prepare("DELETE FROM registration_students WHERE student_id = ?")->execute([$delStId]);
+        $pdo->prepare("DELETE FROM students WHERE id = ? AND school_id = ?")->execute([$delStId, $schoolId]);
+        $message = "ลบข้อมูลนักเรียนเรียบร้อยแล้ว";
+    } catch (Exception $e) {
+        $error = "เกิดข้อผิดพลาดในการลบนักเรียน: " . $e->getMessage();
+    }
 }
 
 // -------------------------------------------------------------
@@ -122,21 +131,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_coach'])) {
         $cPhone = trim($_POST['coach_phone'] ?? '');
 
         if ($cFirst && $cLast) {
-            $cId = 'coa-' . uniqid();
-            $stmt = $pdo->prepare("
-                INSERT INTO coaches (id, school_id, prefix, first_name, last_name, phone, position, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-            ");
-            $stmt->execute([$cId, $schoolId, $cPrefix, $cFirst, $cLast, $cPhone, $cPos]);
-            $message = "เพิ่มข้อมูลครูผู้ฝึกสอน \"$cPrefix$cFirst $cLast\" เรียบร้อยแล้ว";
+            try {
+                $cId = 'coa-' . uniqid();
+                $stmt = $pdo->prepare("
+                    INSERT INTO coaches (id, competition_id, school_id, prefix, first_name, last_name, phone, position, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                ");
+                $stmt->execute([$cId, $compId, $schoolId, $cPrefix, $cFirst, $cLast, $cPhone, $cPos]);
+                logActivity('CREATE', 'coaches', "เพิ่มครูผู้ฝึกสอน: $cPrefix$cFirst $cLast");
+                $message = "เพิ่มข้อมูลครูผู้ฝึกสอน \"$cPrefix$cFirst $cLast\" เรียบร้อยแล้ว";
+            } catch (Exception $e) {
+                $error = "เกิดข้อผิดพลาดในการบันทึกครูผู้ฝึกสอน: " . $e->getMessage();
+            }
         }
     }
 }
 
 if (isset($_GET['delete_coach_id'])) {
-    $delCId = $_GET['delete_coach_id'];
-    $pdo->prepare("DELETE FROM coaches WHERE id = ? AND school_id = ?")->execute([$delCId, $schoolId]);
-    $message = "ลบข้อมูลครูผู้ฝึกสอนเรียบร้อยแล้ว";
+    try {
+        $delCId = $_GET['delete_coach_id'];
+        $pdo->prepare("DELETE FROM coaches WHERE id = ? AND school_id = ?")->execute([$delCId, $schoolId]);
+        $message = "ลบข้อมูลครูผู้ฝึกสอนเรียบร้อยแล้ว";
+    } catch (Exception $e) {
+        $error = "เกิดข้อผิดพลาดในการลบครูผู้ฝึกสอน: " . $e->getMessage();
+    }
 }
 
 // -------------------------------------------------------------
@@ -148,20 +166,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_register'])) {
     $studentIds = $_POST['student_ids'] ?? [];
 
     if ($eventId && !empty($studentIds)) {
-        // ตรวจสอบว่าเคยสมัครรายการนี้หรือยัง
-        $chk = $pdo->prepare("SELECT id FROM registrations WHERE event_id = ? AND school_id = ?");
-        $chk->execute([$eventId, $schoolId]);
-        $existing = $chk->fetch();
+        try {
+            // ตรวจสอบว่าเคยสมัครรายการนี้หรือยัง
+            $chk = $pdo->prepare("SELECT id FROM registrations WHERE event_id = ? AND school_id = ?");
+            $chk->execute([$eventId, $schoolId]);
+            $existing = $chk->fetch();
 
-        if ($existing) {
-            $error = "โรงเรียนของท่านได้ลงทะเบียนรายการนี้ไปแล้ว หากต้องการเปลี่ยนรายชื่อ กรุณายกเลิกรายการเดิมก่อน";
-        } else {
-            try {
+            if ($existing) {
+                $error = "โรงเรียนของท่านได้ลงทะเบียนรายการนี้ไปแล้ว หากต้องการเปลี่ยนรายชื่อ กรุณายกเลิกรายการเดิมก่อน";
+            } else {
                 $pdo->beginTransaction();
                 $regId = 'reg-' . uniqid();
                 $rStmt = $pdo->prepare("
-                    INSERT INTO registrations (id, competition_id, event_id, school_id, coach_id, status)
-                    VALUES (?, ?, ?, ?, ?, 'REGISTERED')
+                    INSERT INTO registrations (id, competition_id, event_id, school_id, coach_id, registration_status)
+                    VALUES (?, ?, ?, ?, ?, 'APPROVED')
                 ");
                 $rStmt->execute([$regId, $compId, $eventId, $schoolId, $coachId ?: null]);
 
@@ -171,11 +189,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_register'])) {
                 }
 
                 $pdo->commit();
+                logActivity('CREATE', 'registrations', "ลงทะเบียนส่งแข่งขัน Event ID: $eventId");
                 $message = "ลงทะเบียนส่งนักกีฬาเข้าแข่งขันเรียบร้อยแล้ว!";
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                $error = "เกิดข้อผิดพลาดในการลงทะเบียน: " . $e->getMessage();
             }
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $error = "เกิดข้อผิดพลาดในการลงทะเบียน: " . $e->getMessage();
         }
     } else {
         $error = "กรุณาเลือกรายการแข่งขันและเลือกนักกีฬาอย่างน้อย 1 คน";
@@ -183,52 +204,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_register'])) {
 }
 
 if (isset($_GET['cancel_reg_id'])) {
-    $delRegId = $_GET['cancel_reg_id'];
-    $pdo->prepare("DELETE FROM registration_students WHERE registration_id = ?")->execute([$delRegId]);
-    $pdo->prepare("DELETE FROM registrations WHERE id = ? AND school_id = ?")->execute([$delRegId, $schoolId]);
-    $message = "ยกเลิกการส่งแข่งขันรายการดังกล่าวเรียบร้อยแล้ว";
+    try {
+        $delRegId = $_GET['cancel_reg_id'];
+        $pdo->prepare("DELETE FROM registration_students WHERE registration_id = ?")->execute([$delRegId]);
+        $pdo->prepare("DELETE FROM registrations WHERE id = ? AND school_id = ?")->execute([$delRegId, $schoolId]);
+        logActivity('DELETE', 'registrations', "ยกเลิกการลงทะเบียน Registration ID: $delRegId");
+        $message = "ยกเลิกการส่งแข่งขันรายการดังกล่าวเรียบร้อยแล้ว";
+    } catch (Exception $e) {
+        $error = "เกิดข้อผิดพลาดในการยกเลิกรายการ: " . $e->getMessage();
+    }
 }
 
 // -------------------------------------------------------------
 // ดึงข้อมูลแสดงผล
 // -------------------------------------------------------------
-// รายชื่อนักเรียน
-$students = $pdo->prepare("SELECT * FROM students WHERE school_id = ? ORDER BY grade_level ASC, first_name ASC");
-$students->execute([$schoolId]);
-$studentList = $students->fetchAll();
+// รายชื่อนักเรียน (รองรับทั้ง grade และ grade_level)
+try {
+    $students = $pdo->prepare("SELECT * FROM students WHERE school_id = ? ORDER BY first_name ASC");
+    $students->execute([$schoolId]);
+    $studentList = $students->fetchAll();
+} catch (Exception $e) {
+    $studentList = [];
+}
 
 // รายชื่อครู
-$coaches = $pdo->prepare("SELECT * FROM coaches WHERE school_id = ? ORDER BY first_name ASC");
-$coaches->execute([$schoolId]);
-$coachList = $coaches->fetchAll();
+try {
+    $coaches = $pdo->prepare("SELECT * FROM coaches WHERE school_id = ? ORDER BY first_name ASC");
+    $coaches->execute([$schoolId]);
+    $coachList = $coaches->fetchAll();
+} catch (Exception $e) {
+    $coachList = [];
+}
 
 // รายการแข่งขันทั้งหมดที่เปิดรับ
-$events = $pdo->query("
-    SELECT e.*, sp.sport_name, sp.sport_icon 
-    FROM events e 
-    JOIN sports sp ON e.sport_id = sp.id 
-    ORDER BY sp.sport_name ASC, e.event_name ASC
-")->fetchAll();
+try {
+    $events = $pdo->query("
+        SELECT e.*, sp.sport_name, sp.sport_icon 
+        FROM events e 
+        JOIN sports sp ON e.sport_id = sp.id 
+        ORDER BY sp.sport_name ASC, e.event_name ASC
+    ")->fetchAll();
+} catch (Exception $e) {
+    $events = [];
+}
 
 // รายการที่โรงเรียนนี้ลงทะเบียนไว้แล้ว
-$myRegistrations = $pdo->prepare("
-    SELECT r.*, e.event_name, e.event_code, e.age_group, e.grade, sp.sport_name, sp.sport_icon,
-           c.first_name as coach_first, c.last_name as coach_last, c.prefix as coach_prefix,
-           (SELECT COUNT(*) FROM registration_students rs WHERE rs.registration_id = r.id) as student_count
-    FROM registrations r
-    JOIN events e ON r.event_id = e.id
-    JOIN sports sp ON e.sport_id = sp.id
-    LEFT JOIN coaches c ON r.coach_id = c.id
-    WHERE r.school_id = ?
-    ORDER BY sp.sport_name ASC
-");
-$myRegistrations->execute([$schoolId]);
-$myRegList = $myRegistrations->fetchAll();
+try {
+    $myRegistrations = $pdo->prepare("
+        SELECT r.*, e.event_name, e.event_code, e.age_group, e.grade, sp.sport_name, sp.sport_icon,
+               c.first_name as coach_first, c.last_name as coach_last, c.prefix as coach_prefix,
+               (SELECT COUNT(*) FROM registration_students rs WHERE rs.registration_id = r.id) as student_count
+        FROM registrations r
+        JOIN events e ON r.event_id = e.id
+        JOIN sports sp ON e.sport_id = sp.id
+        LEFT JOIN coaches c ON r.coach_id = c.id
+        WHERE r.school_id = ?
+        ORDER BY sp.sport_name ASC
+    ");
+    $myRegistrations->execute([$schoolId]);
+    $myRegList = $myRegistrations->fetchAll();
+} catch (Exception $e) {
+    $myRegList = [];
+}
 
 // เกียรติบัตรของโรงเรียน
-$certs = $pdo->prepare("SELECT * FROM certificates WHERE school_id = ? ORDER BY issue_date DESC, medal ASC");
-$certs->execute([$schoolId]);
-$certList = $certs->fetchAll();
+try {
+    $certs = $pdo->prepare("SELECT * FROM certificates WHERE school_id = ? ORDER BY issue_date DESC, medal ASC");
+    $certs->execute([$schoolId]);
+    $certList = $certs->fetchAll();
+} catch (Exception $e) {
+    $certList = [];
+}
 
 $pageTitle = 'ระบบบริหารจัดการสำหรับโรงเรียน - ' . htmlspecialchars($schoolData['school_name']);
 require_once __DIR__ . '/../includes/header.php';
@@ -426,7 +472,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <input type="checkbox" name="student_ids[]" value="<?= htmlspecialchars($st['id']) ?>" class="w-4 h-4 rounded text-blue-600">
                                     <div class="min-w-0">
                                         <span class="font-bold text-slate-800"><?= htmlspecialchars($st['prefix'] . $st['first_name'] . ' ' . $st['last_name']) ?></span>
-                                        <span class="text-[10px] text-slate-400 block"><?= htmlspecialchars($st['grade_level']) ?> (<?= $st['gender'] === 'MALE' ? 'ชาย' : 'หญิง' ?>)</span>
+                                        <span class="text-[10px] text-slate-400 block"><?= htmlspecialchars($st['grade'] ?? $st['grade_level'] ?? '') ?> (<?= ($st['gender'] ?? 'MALE') === 'MALE' ? 'ชาย' : 'หญิง' ?>)</span>
                                     </div>
                                 </label>
                             <?php endforeach; ?>
@@ -560,7 +606,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="py-2 flex items-center justify-between">
                             <div>
                                 <span class="font-bold text-slate-800"><?= htmlspecialchars($s['prefix'] . $s['first_name'] . ' ' . $s['last_name']) ?></span>
-                                <span class="text-[11px] text-slate-400 ml-2"><?= htmlspecialchars($s['grade_level']) ?> (<?= $s['gender'] === 'MALE' ? 'ชาย' : 'หญิง' ?>)</span>
+                                <span class="text-[11px] text-slate-400 ml-2"><?= htmlspecialchars($s['grade'] ?? $s['grade_level'] ?? '') ?> (<?= ($s['gender'] ?? 'MALE') === 'MALE' ? 'ชาย' : 'หญิง' ?>)</span>
                             </div>
                             <a href="?delete_student_id=<?= urlencode($s['id']) ?>" onclick="return confirm('ยืนยันลบนักเรียนคนนี้?')" class="text-rose-500 hover:text-rose-700 text-[11px] font-semibold">
                                 🗑️ ลบ
