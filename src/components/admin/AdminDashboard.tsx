@@ -823,6 +823,21 @@ export const AdminDashboard: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Shared Hosting / cPanel / DirectAdmin Advice Box */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
+            <div className="font-bold flex items-center gap-2 text-amber-800">
+              <span>💡</span> คำแนะนำกรณีนำเข้าผ่าน phpMyAdmin บน Shared Web Hosting (DirectAdmin / cPanel)
+            </div>
+            <p className="text-amber-800/90 leading-relaxed">
+              หากเจอปัญหา <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-rose-700">#1044 - Access denied</code> เกิดจาก User บนโฮสต์ไม่มีสิทธิ์ใช้คำสั่ง <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">CREATE DATABASE</code>:
+            </p>
+            <ol className="list-decimal list-inside space-y-1 pl-1 text-slate-700">
+              <li>สร้างฐานข้อมูลและผูก User ผ่าน Control Panel ของโฮสติ้งก่อน</li>
+              <li>เปิด <b>phpMyAdmin</b> แล้วคลิกเลือก <b>ชื่อฐานข้อมูลของคุณในแถบเมนูด้านซ้าย</b></li>
+              <li>ไปที่แท็บ <b>"นำเข้า (Import)"</b> แล้วเลือกไฟล์ <code className="bg-white px-1 py-0.5 rounded border border-amber-300 font-mono">database.sql</code> (ไฟล์นี้ปรับให้ไม่มีคำสั่ง CREATE DATABASE แล้ว จึงนำเข้าได้ทันที 100%)</li>
+            </ol>
+          </div>
         </div>
       )}
 

@@ -6,9 +6,6 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE DATABASE IF NOT EXISTS `swang_sung_krasang_sports` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `swang_sung_krasang_sports`;
-
 -- 1. COMPETITIONS TABLE
 DROP TABLE IF EXISTS `competitions`;
 CREATE TABLE `competitions` (

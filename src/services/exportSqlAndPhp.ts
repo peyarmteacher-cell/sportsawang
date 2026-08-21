@@ -56,15 +56,21 @@ class Database {
      */
     public static function autoInstallDatabase(): bool {
         try {
-            // เชื่อมต่อไปยัง MySQL Server โดยไม่ระบุ Database
-            $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
-            $pdo = new PDO($rootDsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            
-            // 1. สร้าง Database
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS \`" . DB_NAME . "\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-            $pdo->exec("USE \`" . DB_NAME . "\`;");
+            $pdo = null;
+            // พยายามเชื่อมต่อไปยัง Database ที่ระบุไว้โดยตรงก่อน (รองรับ Shared Hosting เช่น cPanel / DirectAdmin)
+            try {
+                $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+                $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            } catch (PDOException $ex) {
+                // หากไม่มี Database และผู้ใช้มีสิทธิ์ระดับ Root/Admin ให้ลองสร้าง Database
+                $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
+                $rootPdo = new PDO($rootDsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS \`" . DB_NAME . "\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+                $rootPdo->exec("USE \`" . DB_NAME . "\`;");
+                $pdo = $rootPdo;
+            }
 
-            // 2. โหลดคำสั่ง SQL จาก database.sql
+            // โหลดคำสั่ง SQL จาก database.sql
             $sqlFile = __DIR__ . '/../database.sql';
             if (file_exists($sqlFile)) {
                 $sql = file_get_contents($sqlFile);
@@ -96,12 +102,21 @@ $status = 'READY';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['auto'])) {
     try {
-        $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4", DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
-
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS \`" . DB_NAME . "\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-        $pdo->exec("USE \`" . DB_NAME . "\`;");
+        $pdo = null;
+        // 1. ตรวจสอบการเชื่อมต่อแบบ Direct Database (Shared Hosting / DirectAdmin / cPanel)
+        try {
+            $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+        } catch (PDOException $e) {
+            // 2. หากยังไม่มี DB และมีสิทธิ์สร้าง ให้ลองสร้าง DB
+            $rootPdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+            $rootPdo->exec("CREATE DATABASE IF NOT EXISTS \`" . DB_NAME . "\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+            $rootPdo->exec("USE \`" . DB_NAME . "\`;");
+            $pdo = $rootPdo;
+        }
 
         $sqlPath = __DIR__ . '/database.sql';
         if (!file_exists($sqlPath)) {
@@ -112,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['auto'])) {
         $pdo->exec($sql);
 
         $status = 'SUCCESS';
-        $message = "ติดตั้งฐานข้อมูล " . DB_NAME . " และนำเข้าข้อมูลโรงเรียน 12 แห่งในกลุ่มโรงเรียนสว่างสูงกระสังสำเร็จเรียบร้อยแล้ว!";
+        $message = "ติดตั้งฐานข้อมูล [" . DB_NAME . "] และนำเข้าข้อมูลโรงเรียน 12 แห่งในกลุ่มโรงเรียนสว่างสูงกระสังสำเร็จเรียบร้อยแล้ว!";
     } catch (Exception $e) {
         $status = 'ERROR';
         $message = "เกิดข้อผิดพลาด: " . $e->getMessage();
@@ -206,11 +221,6 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+07:00";
-
-CREATE DATABASE IF NOT EXISTS \`swang_sung_krasang_sports\` 
-DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE \`swang_sung_krasang_sports\`;
 
 -- ------------------------------------------------------------------------------
 -- 1. Table structure for table \`competitions\`

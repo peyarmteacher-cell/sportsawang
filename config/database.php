@@ -50,11 +50,19 @@ class Database {
      */
     public static function autoInstallDatabase(): bool {
         try {
-            $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
-            $pdo = new PDO($rootDsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-            $pdo->exec("USE `" . DB_NAME . "`;");
+            $pdo = null;
+            // 1. พยายามเชื่อมต่อ Database ที่ระบุไว้โดยตรงก่อน (รองรับ Shared Hosting เช่น cPanel / DirectAdmin)
+            try {
+                $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+                $pdo = new PDO($dsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            } catch (PDOException $ex) {
+                // 2. หากยังไม่มี Database และผู้ใช้มีสิทธิ์ Root/Admin ให้ลองสร้าง Database
+                $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
+                $rootPdo = new PDO($rootDsn, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+                $rootPdo->exec("USE `" . DB_NAME . "`;");
+                $pdo = $rootPdo;
+            }
 
             $sqlFile = __DIR__ . '/../database.sql';
             if (file_exists($sqlFile)) {

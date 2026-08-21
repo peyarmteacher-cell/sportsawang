@@ -15,17 +15,23 @@ $details = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['auto'])) {
     try {
-        // 1. เชื่อมต่อไปยัง MySQL Host
-        $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
-        $pdo = new PDO($rootDsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
-        $details[] = "✅ เชื่อมต่อ MySQL Server (" . DB_HOST . ":" . DB_PORT . ") สำเร็จ";
-
-        // 2. สร้าง Database
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-        $pdo->exec("USE `" . DB_NAME . "`;");
-        $details[] = "✅ ตรวจสอบ/สร้างฐานข้อมูล `" . DB_NAME . "` สำเร็จ";
+        $pdo = null;
+        // 1. ลองเชื่อมต่อ Database ที่ระบุโดยตรงก่อน (รองรับ Shared Hosting เช่น cPanel / DirectAdmin / Plesk)
+        try {
+            $pdo = new PDO("mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+            $details[] = "✅ เชื่อมต่อไปยังฐานข้อมูล `" . DB_NAME . "` สำเร็จ";
+        } catch (PDOException $e) {
+            // 2. หากยังไม่มี Database และผู้ใช้มีสิทธิ์ Root/Admin ให้ลองสร้าง Database
+            $rootDsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
+            $pdo = new PDO($rootDsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+            $pdo->exec("USE `" . DB_NAME . "`;");
+            $details[] = "✅ ตรวจสอบ/สร้างฐานข้อมูล `" . DB_NAME . "` สำเร็จ";
+        }
 
         // 3. รันคำสั่ง SQL จาก database.sql
         $sqlPath = __DIR__ . '/database.sql';
