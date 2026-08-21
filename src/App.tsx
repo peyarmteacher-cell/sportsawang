@@ -86,19 +86,19 @@ export function App() {
               className="flex items-center gap-3 cursor-pointer select-none group"
             >
               <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-base shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0 font-['Kanit']">
-                SS
+                SP
               </div>
-              <div>
+              <div className="max-w-md truncate">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-sm md:text-base font-['Kanit'] text-indigo-950 uppercase tracking-wider">
-                    สว่างสูงกระสังเกมส์ ๒๕๖๙
+                  <span className="font-extrabold text-sm md:text-base font-['Kanit'] text-indigo-950 tracking-wide truncate">
+                    {sportsStore.getCurrentCompetition().competition_name}
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100 shrink-0">
                     PHP 8 / MySQL 8
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 uppercase font-medium hidden sm:block">
-                  Sports Management System • สพป.บุรีรัมย์ เขต ๒
+                <p className="text-[10px] text-slate-500 font-medium hidden sm:block truncate">
+                  {sportsStore.getCurrentCompetition().host_org}
                 </p>
               </div>
             </div>

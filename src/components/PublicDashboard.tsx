@@ -77,8 +77,17 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Hero Section - Sleek Interface Theme */}
-      <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl p-6 md:p-8 border border-indigo-800/40">
+      {/* Hero Section - Sleek Interface Theme with Custom Header Image Support */}
+      <div
+        className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl p-6 md:p-8 border border-indigo-800/40 bg-cover bg-center"
+        style={
+          comp.header_bg_image
+            ? {
+                backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.92), rgba(30, 27, 75, 0.85)), url('${comp.header_bg_image}')`
+              }
+            : undefined
+        }
+      >
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 -mb-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -92,14 +101,18 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
             {comp.competition_name}
           </h1>
 
-          <p className="text-slate-300 text-xs md:text-sm mt-1.5 font-['Prompt']">
+          <p className="text-slate-200 text-xs md:text-sm mt-1.5 font-['Prompt']">
             {comp.host_org}
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-5 pt-4 border-t border-slate-800/80 text-xs md:text-sm text-slate-300">
+          <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-5 pt-4 border-t border-slate-700/80 text-xs md:text-sm text-slate-300">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-amber-400" />
-              <span className="font-medium">15 - 20 พฤศจิกายน 2569</span>
+              <span className="font-medium">
+                {comp.start_date && comp.end_date
+                  ? `${comp.start_date} ถึง ${comp.end_date}`
+                  : '15 - 20 พฤศจิกายน 2569'}
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-amber-400" />
@@ -276,21 +289,13 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.logo}
-                          alt={item.school_name}
-                          className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div>
-                          <p className="font-bold text-slate-900 font-['Prompt'] text-sm">
-                            {item.school_name}
-                          </p>
-                          <span className="text-xs text-slate-500">
-                            {item.short_name}
-                          </span>
-                        </div>
+                      <div>
+                        <p className="font-bold text-slate-900 font-['Prompt'] text-sm">
+                          {item.school_name}
+                        </p>
+                        <span className="text-xs text-slate-500">
+                          {item.short_name}
+                        </span>
                       </div>
                     </td>
                     <td className="py-3.5 px-3 text-center font-black text-amber-700 bg-amber-50/20 font-['Kanit'] text-base">

@@ -170,10 +170,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               </div>
 
               <h2 className="text-2xl font-bold font-['Kanit'] text-slate-900 tracking-wide">
-                กลุ่มโรงเรียนสว่างสูงกระสัง
+                {sportsStore.getCurrentCompetition().competition_name}
               </h2>
               <p className="text-sm font-medium text-slate-700">
-                สำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต ๒
+                {sportsStore.getCurrentCompetition().host_org}
               </p>
 
               <div className="mt-3 flex items-center justify-center gap-4">
@@ -204,7 +204,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               </div>
 
               <p className="text-sm text-slate-700 font-['Prompt']">
-                การแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง ประจำปี ๒๕๖๙
+                {sportsStore.getCurrentCompetition().competition_name}
               </p>
               <p className="text-xs text-slate-600 mt-1">
                 ให้ไว้ ณ วันที่ {thaiIssueDate}
@@ -217,13 +217,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               <div className="text-center flex-1 max-w-[240px]">
                 <div className="h-10 flex items-end justify-center">
                   <span className="font-['Kanit'] text-lg text-blue-900 italic font-semibold border-b border-dotted border-slate-500 pb-1 px-4">
-                    สมเกียรติ สว่างวงศ์
+                    {sportsStore.getCurrentCompetition().president_name || 'สมเกียรติ สว่างวงศ์'}
                   </span>
                 </div>
                 <p className="text-xs font-bold text-slate-800 mt-1">
-                  (นายสมเกียรติ สว่างวงศ์)
+                  ({sportsStore.getCurrentCompetition().president_name || 'นายสมเกียรติ สว่างวงศ์'})
                 </p>
-                <p className="text-[11px] text-slate-600">ประธานกลุ่มโรงเรียนสว่างสูงกระสัง</p>
+                <p className="text-[11px] text-slate-600">ประธานคณะกรรมการจัดการแข่งขัน</p>
               </div>
 
               {/* Center: QR Code & Official No */}
@@ -249,13 +249,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               <div className="text-center flex-1 max-w-[240px]">
                 <div className="h-10 flex items-end justify-center">
                   <span className="font-['Kanit'] text-lg text-blue-900 italic font-semibold border-b border-dotted border-slate-500 pb-1 px-4">
-                    อดุลย์ พัฒนกุล
+                    {sportsStore.getCurrentCompetition().director_name || 'ผู้อำนวยการเขตพื้นที่ฯ'}
                   </span>
                 </div>
                 <p className="text-xs font-bold text-slate-800 mt-1">
-                  (นายอดุลย์ พัฒนกุล)
+                  {sportsStore.getCurrentCompetition().director_name || 'ผู้อำนวยการเขตพื้นที่การศึกษา'}
                 </p>
-                <p className="text-[11px] text-slate-600">ผู้อำนวยการ สพป.บุรีรัมย์ เขต ๒</p>
+                <p className="text-[11px] text-slate-600">{sportsStore.getCurrentCompetition().host_org}</p>
               </div>
             </div>
           </div>

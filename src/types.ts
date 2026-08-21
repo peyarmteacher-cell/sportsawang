@@ -9,12 +9,20 @@ export type MedalType = 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
 export interface Competition {
   id: string;
   year: number; // e.g. 2569
+  academic_year?: string; // e.g. 2569
   competition_name: string;
   start_date: string;
   end_date: string;
   venue: string;
   status: CompetitionStatus;
   host_org: string;
+  header_bg_image?: string; // Custom Header Banner Image URL or base64
+  google_drive_folder_id?: string; // Google Drive target folder ID
+  google_slide_template_id?: string; // Google Slide template ID for certificate generation
+  president_name?: string;
+  director_name?: string;
+  cert_prefix?: string;
+  medal_criteria?: 'GOLD_FIRST' | 'TOTAL_FIRST';
   created_at: string;
 }
 

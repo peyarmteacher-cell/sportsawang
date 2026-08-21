@@ -177,23 +177,20 @@ export const PublicSchools: React.FC<{ onSelectSchool?: (id: string) => void }> 
               className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-300 transition-all flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src={sch.logo}
-                    alt={sch.school_name}
-                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
+                <div className="flex items-start justify-between gap-3 mb-4">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base font-['Kanit']">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">
+                      รหัส SMIS: {sch.school_code}
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-lg font-['Kanit'] mt-1.5 leading-snug">
                       {sch.school_name}
                     </h3>
-                    <p className="text-xs text-slate-500">
-                      รหัสสถานศึกษา: {sch.school_code}
+                    <p className="text-xs font-medium text-slate-500">
+                      ชื่อย่อ: {sch.short_name}
                     </p>
                     {sch.director_name && (
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        ผอ. {sch.director_name}
+                      <p className="text-xs text-slate-600 mt-1 flex items-center gap-1 font-['Prompt']">
+                        <span>ผอ. {sch.director_name}</span>
                       </p>
                     )}
                   </div>

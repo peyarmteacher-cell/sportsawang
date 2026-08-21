@@ -313,19 +313,108 @@ export const AdminDashboard: React.FC = () => {
             )}
           </div>
 
-          <form onSubmit={handleSaveCompetitionSettings} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="font-semibold block mb-1">ชื่อการแข่งขัน</label>
-                <input
-                  type="text"
-                  required
-                  value={compForm.competition_name}
-                  onChange={(e) => setCompForm({ ...compForm, competition_name: e.target.value })}
-                  className="w-full p-2.5 border rounded-xl text-sm font-semibold"
-                />
-              </div>
+          <form onSubmit={handleSaveCompetitionSettings} className="space-y-5 text-xs">
+            <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-3">
+              <h3 className="font-bold text-sm font-['Kanit'] text-indigo-900 flex items-center gap-2">
+                <span>🎨</span> ปรับแต่งชื่อการแข่งขันและภาพหัวเว็บ (Header Banner)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="font-semibold block mb-1 text-slate-800">
+                    ชื่อการแข่งขันที่แสดงบนหน้าเว็บ (Web Page Title)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={compForm.competition_name}
+                    onChange={(e) => setCompForm({ ...compForm, competition_name: e.target.value })}
+                    placeholder="เช่น การแข่งขันกีฬากลุ่มโรงเรียนสังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต 3"
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    ชื่อนี้จะแสดงที่แถบเมนูด้านบน, ป้ายหัวเว็บ (Hero Banner), และเกียรติบัตรทุกใบ
+                  </p>
+                </div>
 
+                <div className="md:col-span-2">
+                  <label className="font-semibold block mb-1 text-slate-800">
+                    ลิงก์ภาพตกแต่งส่วนหัวเว็บ (Header Background Image URL)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={compForm.header_bg_image || ''}
+                      onChange={(e) => setCompForm({ ...compForm, header_bg_image: e.target.value })}
+                      placeholder="https://example.com/banner-sports.jpg"
+                      className="flex-1 p-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                    {compForm.header_bg_image && (
+                      <button
+                        type="button"
+                        onClick={() => setCompForm({ ...compForm, header_bg_image: '' })}
+                        className="px-3 py-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 rounded-xl font-medium"
+                      >
+                        ล้างภาพ
+                      </button>
+                    )}
+                  </div>
+                  {compForm.header_bg_image && (
+                    <div className="mt-2 h-24 rounded-xl overflow-hidden border border-slate-200 relative">
+                      <img
+                        src={compForm.header_bg_image}
+                        alt="Header Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-bold font-['Kanit']">
+                        ตัวอย่างการแสดงผลภาพหัวเว็บ
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Google Drive & Google Slides Configuration */}
+            <div className="bg-sky-50/50 p-4 rounded-2xl border border-sky-100 space-y-3">
+              <h3 className="font-bold text-sm font-['Kanit'] text-sky-900 flex items-center gap-2">
+                <span>📁</span> ตั้งค่าเชื่อมต่อ Google Drive และ Google Slides (สร้างเกียรติบัตร)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-semibold block mb-1 text-slate-800">
+                    Google Drive Folder ID (โฟลเดอร์เก็บเกียรติบัตร PDF)
+                  </label>
+                  <input
+                    type="text"
+                    value={compForm.google_drive_folder_id || ''}
+                    onChange={(e) => setCompForm({ ...compForm, google_drive_folder_id: e.target.value })}
+                    placeholder="เช่น 1aBcDeFgHiJkLmNoPqRsTuVwXyZ..."
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:outline-hidden"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    ID โฟลเดอร์ใน Google Drive ที่จะใช้จัดเก็บไฟล์เกียรติบัตรอัตโนมัติ
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-semibold block mb-1 text-slate-800">
+                    Google Slides Template ID (แม่แบบเกียรติบัตร)
+                  </label>
+                  <input
+                    type="text"
+                    value={compForm.google_slide_template_id || ''}
+                    onChange={(e) => setCompForm({ ...compForm, google_slide_template_id: e.target.value })}
+                    placeholder="เช่น 1sL1dE_T3mpL4t3_Krasang_Cert_2569..."
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:outline-hidden"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    ID ไฟล์แม่แบบใน Google Slides สำหรับการ Merge ข้อมูลผู้รับรางวัล
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="font-semibold block mb-1">ปีการศึกษา / ปีงบประมาณ</label>
                 <input
