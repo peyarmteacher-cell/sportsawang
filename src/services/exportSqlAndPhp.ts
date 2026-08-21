@@ -353,12 +353,20 @@ DROP TABLE IF EXISTS \`competitions\`;
 CREATE TABLE \`competitions\` (
   \`id\` VARCHAR(50) NOT NULL,
   \`year\` INT NOT NULL COMMENT 'ปีการแข่งขัน พ.ศ. เช่น 2569',
+  \`academic_year\` VARCHAR(50) DEFAULT '2569' COMMENT 'ปีการศึกษา',
   \`competition_name\` VARCHAR(255) NOT NULL COMMENT 'ชื่อการแข่งขัน',
   \`start_date\` DATE NOT NULL COMMENT 'วันที่เริ่มการแข่งขัน',
   \`end_date\` DATE NOT NULL COMMENT 'วันที่สิ้นสุดการแข่งขัน',
   \`venue\` VARCHAR(255) NOT NULL COMMENT 'สถานที่จัดการแข่งขัน',
-  \`host_org\` VARCHAR(255) DEFAULT 'กลุ่มโรงเรียนสว่างสูงกระสัง' COMMENT 'หน่วยงานเจ้าภาพ',
+  \`host_org\` VARCHAR(255) DEFAULT 'กลุ่มโรงเรียนสังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต 3' COMMENT 'หน่วยงานเจ้าภาพ',
   \`status\` ENUM('PREPARATION', 'OPEN_REGISTRATION', 'CLOSED_REGISTRATION', 'COMPETING', 'SUMMARIZING', 'CLOSED') DEFAULT 'COMPETING',
+  \`header_bg_image\` TEXT DEFAULT NULL COMMENT 'ลิงก์ภาพตกแต่งหัวเว็บ',
+  \`google_drive_folder_id\` VARCHAR(255) DEFAULT NULL COMMENT 'Google Drive Folder ID',
+  \`google_slide_template_id\` VARCHAR(255) DEFAULT NULL COMMENT 'Google Slide Template ID',
+  \`president_name\` VARCHAR(150) DEFAULT NULL COMMENT 'ชื่อประธานจัดการแข่งขัน',
+  \`director_name\` VARCHAR(150) DEFAULT NULL COMMENT 'ชื่อผู้อำนวยการเขตพื้นที่ฯ',
+  \`cert_prefix\` VARCHAR(50) DEFAULT 'สพป.บร.3/2569-' COMMENT 'คำนำหน้าเลขที่เกียรติบัตร',
+  \`medal_criteria\` ENUM('GOLD_FIRST', 'TOTAL_FIRST') DEFAULT 'GOLD_FIRST',
   \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
@@ -645,8 +653,8 @@ CREATE TABLE \`activity_logs\` (
 -- ==============================================================================
 
 -- Competitions
-INSERT INTO \`competitions\` (\`id\`, \`year\`, \`competition_name\`, \`start_date\`, \`end_date\`, \`venue\`, \`host_org\`, \`status\`) VALUES
-('${comp.id}', ${comp.year}, '${comp.competition_name.replace(/'/g, "\\'")}', '${comp.start_date}', '${comp.end_date}', '${comp.venue.replace(/'/g, "\\'")}', '${comp.host_org.replace(/'/g, "\\'")}', '${comp.status}');
+INSERT INTO \`competitions\` (\`id\`, \`year\`, \`academic_year\`, \`competition_name\`, \`start_date\`, \`end_date\`, \`venue\`, \`host_org\`, \`status\`, \`header_bg_image\`, \`google_drive_folder_id\`, \`google_slide_template_id\`, \`president_name\`, \`director_name\`, \`cert_prefix\`, \`medal_criteria\`) VALUES
+('${comp.id}', ${comp.year}, '${(comp.academic_year || '2569').replace(/'/g, "\\'")}', '${comp.competition_name.replace(/'/g, "\\'")}', '${comp.start_date}', '${comp.end_date}', '${comp.venue.replace(/'/g, "\\'")}', '${comp.host_org.replace(/'/g, "\\'")}', '${comp.status}', '${(comp.header_bg_image || '').replace(/'/g, "\\'")}', '${(comp.google_drive_folder_id || '').replace(/'/g, "\\'")}', '${(comp.google_slide_template_id || '').replace(/'/g, "\\'")}', '${(comp.president_name || '').replace(/'/g, "\\'")}', '${(comp.director_name || '').replace(/'/g, "\\'")}', '${(comp.cert_prefix || 'สพป.บร.3/2569-').replace(/'/g, "\\'")}', '${comp.medal_criteria || 'GOLD_FIRST'}');
 
 -- Settings
 ${settings.map(s => `INSERT INTO \`settings\` (\`id\`, \`setting_key\`, \`setting_value\`, \`description\`) VALUES ('${s.id}', '${s.setting_key}', '${s.setting_value.replace(/'/g, "\\'")}', '${s.description.replace(/'/g, "\\'")}');`).join('\n')}
@@ -1144,6 +1152,10 @@ try {
 ?>`);
   }
 
+  // Update Database scripts
+  zip.file('update_database.sql', generateUpdateDatabaseSql());
+  zip.file('update_database.php', generateUpdateDatabasePhp());
+
   // Generate zip and trigger browser download
   const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
@@ -1154,6 +1166,206 @@ try {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export function generateUpdateDatabaseSql(): string {
+  const comp = sportsStore.getCurrentCompetition();
+
+  return `-- ==============================================================================
+-- สคริปต์อัปเดตตารางฐานข้อมูล MySQL (Safe Non-destructive Schema Migration)
+-- สามารถรันผ่าน phpMyAdmin หรือ Database Console เพื่ออัปเดตโครงสร้างและข้อมูลล่าสุด
+-- ==============================================================================
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 1. อัปเดตคอลัมน์ในตาราง competitions
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`academic_year\` VARCHAR(50) DEFAULT '2569';
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`header_bg_image\` TEXT DEFAULT NULL;
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`google_drive_folder_id\` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`google_slide_template_id\` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`president_name\` VARCHAR(150) DEFAULT NULL;
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`director_name\` VARCHAR(150) DEFAULT NULL;
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`cert_prefix\` VARCHAR(50) DEFAULT 'สพป.บร.3/2569-';
+ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`medal_criteria\` ENUM('GOLD_FIRST', 'TOTAL_FIRST') DEFAULT 'GOLD_FIRST';
+
+-- 2. อัปเดตคอลัมน์ในตาราง schools
+ALTER TABLE \`schools\` ADD COLUMN IF NOT EXISTS \`smis_code\` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE \`schools\` ADD COLUMN IF NOT EXISTS \`director_name\` VARCHAR(150) DEFAULT NULL;
+
+-- 3. อัปเดตคอลัมน์ในตาราง users
+ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`password_plain\` VARCHAR(255) DEFAULT '123456';
+ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`phone\` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`must_change_password\` TINYINT(1) NOT NULL DEFAULT 1;
+
+-- 4. อัปเดตคอลัมน์ในตาราง events
+ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`grade\` VARCHAR(100) DEFAULT 'ประถมศึกษา';
+ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`age_group\` VARCHAR(100) DEFAULT 'อายุไม่เกิน 12 ปี';
+ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`award_type\` VARCHAR(255) DEFAULT 'เหรียญรางวัล ทอง เงิน ทองแดง + เกียรติบัตร';
+
+-- 5. ซิงค์ค่าการแข่งขันล่าสุด
+UPDATE \`competitions\` SET 
+  \`competition_name\` = '${comp.competition_name.replace(/'/g, "\\'")}',
+  \`academic_year\` = '${(comp.academic_year || '2569').replace(/'/g, "\\'")}',
+  \`host_org\` = '${comp.host_org.replace(/'/g, "\\'")}',
+  \`venue\` = '${comp.venue.replace(/'/g, "\\'")}',
+  \`president_name\` = '${(comp.president_name || '').replace(/'/g, "\\'")}',
+  \`director_name\` = '${(comp.director_name || '').replace(/'/g, "\\'")}',
+  \`cert_prefix\` = '${(comp.cert_prefix || 'สพป.บร.3/2569-').replace(/'/g, "\\'")}'
+WHERE \`id\` = '${comp.id}' OR \`year\` = ${comp.year};
+
+-- 6. ตรวจสอบการสร้างตารางที่อาจยังไม่มี
+CREATE TABLE IF NOT EXISTS \`activity_logs\` (
+  \`id\` VARCHAR(50) NOT NULL,
+  \`user_id\` VARCHAR(50) DEFAULT NULL,
+  \`user_name\` VARCHAR(150) NOT NULL,
+  \`action\` VARCHAR(255) NOT NULL,
+  \`table_name\` VARCHAR(100) NOT NULL,
+  \`record_id\` VARCHAR(50) DEFAULT NULL,
+  \`ip_address\` VARCHAR(50) DEFAULT NULL,
+  \`user_agent\` TEXT DEFAULT NULL,
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS \`settings\` (
+  \`id\` VARCHAR(50) NOT NULL,
+  \`setting_key\` VARCHAR(100) NOT NULL,
+  \`setting_value\` LONGTEXT NOT NULL,
+  \`description\` VARCHAR(255) DEFAULT NULL,
+  \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_setting_key\` (\`setting_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+`;
+}
+
+export function generateUpdateDatabasePhp(): string {
+  return `<?php
+/**
+ * ==============================================================================
+ * ไฟล์: update_database.php
+ * คำอธิบาย: รันอัปเดตโครงสร้างตารางและคอลัมน์ใน MySQL อัตโนมัติ (Safe Migration)
+ * วิธีใช้: เปิด http://your-domain/update_database.php ผ่านเบราว์เซอร์
+ * ==============================================================================
+ */
+
+require_once __DIR__ . '/config/database.php';
+
+$results = [];
+$status = 'PENDING';
+
+try {
+    $pdo = Database::getConnection();
+
+    $queries = [
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`academic_year\` VARCHAR(50) DEFAULT '2569'",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`header_bg_image\` TEXT DEFAULT NULL",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`google_drive_folder_id\` VARCHAR(255) DEFAULT NULL",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`google_slide_template_id\` VARCHAR(255) DEFAULT NULL",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`president_name\` VARCHAR(150) DEFAULT NULL",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`director_name\` VARCHAR(150) DEFAULT NULL",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`cert_prefix\` VARCHAR(50) DEFAULT 'สพป.บร.3/2569-'",
+        "ALTER TABLE \`competitions\` ADD COLUMN IF NOT EXISTS \`medal_criteria\` ENUM('GOLD_FIRST', 'TOTAL_FIRST') DEFAULT 'GOLD_FIRST'",
+        "ALTER TABLE \`schools\` ADD COLUMN IF NOT EXISTS \`smis_code\` VARCHAR(50) DEFAULT NULL",
+        "ALTER TABLE \`schools\` ADD COLUMN IF NOT EXISTS \`director_name\` VARCHAR(150) DEFAULT NULL",
+        "ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`password_plain\` VARCHAR(255) DEFAULT '123456'",
+        "ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`phone\` VARCHAR(50) DEFAULT NULL",
+        "ALTER TABLE \`users\` ADD COLUMN IF NOT EXISTS \`must_change_password\` TINYINT(1) NOT NULL DEFAULT 1",
+        "ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`grade\` VARCHAR(100) DEFAULT 'ประถมศึกษา'",
+        "ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`age_group\` VARCHAR(100) DEFAULT 'อายุไม่เกิน 12 ปี'",
+        "ALTER TABLE \`events\` ADD COLUMN IF NOT EXISTS \`award_type\` VARCHAR(255) DEFAULT 'เหรียญรางวัล ทอง เงิน ทองแดง + เกียรติบัตร'",
+        "CREATE TABLE IF NOT EXISTS \`activity_logs\` (
+          \`id\` VARCHAR(50) NOT NULL,
+          \`user_id\` VARCHAR(50) DEFAULT NULL,
+          \`user_name\` VARCHAR(150) NOT NULL,
+          \`action\` VARCHAR(255) NOT NULL,
+          \`table_name\` VARCHAR(100) NOT NULL,
+          \`record_id\` VARCHAR(50) DEFAULT NULL,
+          \`ip_address\` VARCHAR(50) DEFAULT NULL,
+          \`user_agent\` TEXT DEFAULT NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`id\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        "CREATE TABLE IF NOT EXISTS \`settings\` (
+          \`id\` VARCHAR(50) NOT NULL,
+          \`setting_key\` VARCHAR(100) NOT NULL,
+          \`setting_value\` LONGTEXT NOT NULL,
+          \`description\` VARCHAR(255) DEFAULT NULL,
+          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`id\`),
+          UNIQUE KEY \`uk_setting_key\` (\`setting_key\`)
+        )"
+    ];
+
+    foreach ($queries as $q) {
+        try {
+            $pdo->exec($q);
+            $results[] = ["query" => $q, "status" => "SUCCESS", "message" => "อัปเดตสำเร็จ"];
+        } catch (Exception $qe) {
+            $results[] = ["query" => $q, "status" => "INFO", "message" => $qe->getMessage()];
+        }
+    }
+
+    $status = 'SUCCESS';
+} catch (Exception $e) {
+    $status = 'ERROR';
+    $results[] = ["query" => "Database Connection", "status" => "ERROR", "message" => $e->getMessage()];
+}
+?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>อัปเดตตารางฐานข้อมูล MySQL สำเร็จ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Prompt', sans-serif; } .font-kanit { font-family: 'Kanit', sans-serif; }</style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl space-y-6">
+        <div class="flex items-center gap-3 border-b border-slate-700 pb-4">
+            <span class="text-3xl">🔄</span>
+            <div>
+                <h1 class="text-xl font-bold font-kanit text-white">ผลการอัปเดตตารางฐานข้อมูล MySQL</h1>
+                <p class="text-xs text-slate-400">กลุ่มโรงเรียนสังกัด สพป.บุรีรัมย์ เขต 3</p>
+            </div>
+        </div>
+
+        <?php if ($status === 'SUCCESS'): ?>
+            <div class="p-4 bg-emerald-950/80 border border-emerald-500/50 rounded-2xl text-emerald-300 text-sm font-semibold flex items-center gap-2">
+                <span>✅</span> อัปเดตโครงสร้างตารางและคอลัมน์ล่าสุดทั้งหมดเรียบร้อยแล้ว โดยไม่กระทบข้อมูลเดิม!
+            </div>
+        <?php else: ?>
+            <div class="p-4 bg-rose-950/80 border border-rose-500/50 rounded-2xl text-rose-300 text-sm font-semibold flex items-center gap-2">
+                <span>❌</span> ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ config/database.php
+            </div>
+        <?php endif; ?>
+
+        <div class="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs font-mono">
+            <?php foreach ($results as $res): ?>
+                <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/60 flex items-start justify-between gap-3">
+                    <span class="text-slate-300 break-all"><?= htmlspecialchars($res['query']) ?></span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 <?= $res['status'] === 'SUCCESS' ? 'bg-emerald-900 text-emerald-300' : 'bg-blue-900 text-blue-300' ?>">
+                        <?= $res['status'] ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="pt-4 border-t border-slate-700 flex justify-between items-center">
+            <a href="index.php" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
+                ← กลับสู่หน้าหลัก
+            </a>
+            <a href="admin/index.php" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition">
+                เข้าสู่ระบบ Admin →
+            </a>
+        </div>
+    </div>
+</body>
+</html>`;
 }
 
 

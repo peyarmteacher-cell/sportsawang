@@ -688,6 +688,24 @@ class SportsDataStore {
     return newSport;
   }
 
+  public updateSport(id: string, updates: Partial<Sport>) {
+    const all = this.getSports();
+    const idx = all.findIndex((s) => s.id === id);
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.SPORTS, JSON.stringify(all));
+      this.logActivity('UPDATE', 'sports', id, `แก้ไขชนิดกีฬา ${all[idx].sport_name}`);
+      this.notify();
+    }
+  }
+
+  public deleteSport(id: string) {
+    const all = this.getSports().filter((s) => s.id !== id);
+    localStorage.setItem(STORAGE_KEYS.SPORTS, JSON.stringify(all));
+    this.logActivity('DELETE', 'sports', id, `ลบชนิดกีฬา ID: ${id}`);
+    this.notify();
+  }
+
   public addEvent(eventData: Omit<Event, 'id' | 'created_at'>): Event {
     const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
     const newEvent: Event = {
@@ -711,6 +729,13 @@ class SportsDataStore {
       this.logActivity('UPDATE', 'events', id, `แก้ไขรายการแข่งขัน ID: ${id}`);
       this.notify();
     }
+  }
+
+  public deleteEvent(id: string) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]').filter((e: Event) => e.id !== id);
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(all));
+    this.logActivity('DELETE', 'events', id, `ลบรายการแข่งขัน ID: ${id}`);
+    this.notify();
   }
 
   // Registration
