@@ -4,6 +4,7 @@ import { SchoolMedalSummary, Result, Event, Sport, School, Certificate } from '.
 import { DashboardCharts } from './DashboardCharts';
 import { CertificateModal } from './CertificateModal';
 import { SchoolDetailModal } from './SchoolDetailModal';
+import { formatThaiDateRange } from '../utils/thaiFormatter';
 import {
   Trophy,
   Medal,
@@ -112,8 +113,8 @@ export const PublicDashboard: React.FC<PublicDashboardProps> = ({
               <Calendar className="w-4 h-4 text-amber-400" />
               <span className="font-medium">
                 {comp.start_date && comp.end_date
-                  ? `${comp.start_date} ถึง ${comp.end_date}`
-                  : '15 - 20 พฤศจิกายน 2569'}
+                  ? formatThaiDateRange(comp.start_date, comp.end_date)
+                  : '15 พฤศจิกายน 2569 ถึง 20 พฤศจิกายน 2569'}
               </span>
             </div>
             <div className="flex items-center gap-1.5">

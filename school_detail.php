@@ -251,7 +251,7 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
 
                         <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-[10px] font-mono text-slate-400"><?= htmlspecialchars($c['issue_date']) ?></span>
+                            <span class="text-[10px] text-slate-400">ออกเมื่อ: <?= formatThaiDate($c['issue_date']) ?></span>
                             <a 
                                 href="/verify.php?token=<?= urlencode($c['qr_token'] ?? $c['certificate_no']) ?>" 
                                 target="_blank" 

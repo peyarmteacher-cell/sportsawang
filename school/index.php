@@ -14,18 +14,62 @@ $pdo = Database::getConnection();
 $message = '';
 $error = '';
 
-$schoolId = $user['school_id'];
-if (empty($schoolId) && in_array($user['role'], ['SUPER_ADMIN', 'ADMIN'])) {
-    // หากเป็น Admin ที่เข้ามาดู ให้เลือกโรงเรียนแรก
-    $schoolId = $pdo->query("SELECT id FROM schools LIMIT 1")->fetchColumn();
+$schoolId = $user['school_id'] ?? null;
+if (empty($schoolId)) {
+    // ลองค้นหาจากรหัส SMIS / school_code
+    $lookup = $pdo->prepare("SELECT id FROM schools WHERE smis_code = ? OR school_code = ? LIMIT 1");
+    $lookup->execute([$user['username'], $user['username']]);
+    $schoolId = $lookup->fetchColumn();
+    
+    // หากยังไม่พบ และเป็น Admin หรือผู้ใช้งาน ให้เลือกโรงเรียนแรกเป็นค่าเริ่มต้น
+    if (empty($schoolId)) {
+        $schoolId = $pdo->query("SELECT id FROM schools LIMIT 1")->fetchColumn();
+    }
+    $_SESSION['user']['school_id'] = $schoolId;
+}
+
+// -------------------------------------------------------------
+// 0. แก้ไขข้อมูลโรงเรียน (School Profile Update)
+// -------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_update_school'])) {
+    $schoolName = trim($_POST['school_name'] ?? '');
+    $shortName = trim($_POST['short_name'] ?? '');
+    $directorName = trim($_POST['director_name'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $logo = trim($_POST['logo'] ?? '');
+
+    if ($schoolName) {
+        $stmt = $pdo->prepare("
+            UPDATE schools 
+            SET school_name = ?, short_name = ?, director_name = ?, address = ?, phone = ?, logo = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([
+            $schoolName,
+            $shortName ?: $schoolName,
+            $directorName,
+            $address,
+            $phone,
+            $logo ?: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150',
+            $schoolId
+        ]);
+        logActivity('UPDATE', 'schools', "แก้ไขข้อมูลโรงเรียน: $schoolName");
+        $message = "บันทึกและปรับปรุงข้อมูลสถานศึกษาเรียบร้อยแล้ว";
+    } else {
+        $error = "กรุณากรอกชื่อสถานศึกษา";
+    }
 }
 
 $school = $pdo->prepare("SELECT * FROM schools WHERE id = ?");
 $school->execute([$schoolId]);
 $schoolData = $school->fetch() ?: [
+    'id' => $schoolId,
     'school_name' => 'โรงเรียนของคุณ',
     'smis_code' => 'SMIS0000',
     'director_name' => '-',
+    'address' => 'อ.กระสัง จ.บุรีรัมย์',
+    'phone' => '-',
     'logo' => 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150'
 ];
 
@@ -217,14 +261,79 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <a href="/school_detail.php?id=<?= urlencode($schoolId) ?>" class="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5 shadow-2xs">
-                <span>🏆</span> ดูสรุปผลงานสาธารณะ
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="document.getElementById('schoolProfileSection').classList.toggle('hidden')" class="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer">
+                <span>✏️</span> แก้ไขข้อมูลโรงเรียน
+            </button>
+            <a href="/school_detail.php?id=<?= urlencode($schoolId) ?>" class="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5 shadow-2xs">
+                <span>🏆</span> ดูสรุปผลงาน
             </a>
-            <a href="/change-password.php" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
+            <a href="/change-password.php" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
                 🔑 เปลี่ยนรหัสผ่าน
             </a>
         </div>
+    </div>
+
+    <!-- School Profile Edit Form Section -->
+    <div id="schoolProfileSection" class="<?= isset($_POST['action_update_school']) ? '' : 'hidden' ?> bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-300 shadow-lg space-y-4 animate-fadeIn">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold font-kanit text-slate-900 text-base flex items-center gap-2">
+                    <span>🏫</span> แก้ไขและปรับปรุงข้อมูลสถานศึกษา
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    แก้ไขชื่อโรงเรียน, ชื่อ-นามสกุลผู้อำนวยการโรงเรียน, ที่อยู่ และเบอร์โทรศัพท์ เพื่อความถูกต้องของเกียรติบัตรและเอกสารทางการ
+                </p>
+            </div>
+            <button type="button" onclick="document.getElementById('schoolProfileSection').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm font-bold px-2 py-1 bg-slate-100 rounded-lg">
+                ปิด ✕
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4 text-xs">
+            <input type="hidden" name="action_update_school" value="1">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อเต็มสถานศึกษา <span class="text-rose-500">*</span></label>
+                    <input type="text" name="school_name" required value="<?= htmlspecialchars($schoolData['school_name']) ?>" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อย่อสถานศึกษา</label>
+                    <input type="text" name="short_name" value="<?= htmlspecialchars($schoolData['short_name'] ?? '') ?>" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อผู้อำนวยการโรงเรียน <span class="text-rose-500">*</span></label>
+                    <input type="text" name="director_name" required value="<?= htmlspecialchars($schoolData['director_name'] ?? '') ?>" placeholder="เช่น นายสมเกียรติ สว่างวงศ์" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                    <input type="text" name="phone" value="<?= htmlspecialchars($schoolData['phone'] ?? '') ?>" placeholder="044-xxxxxx หรือ 081-xxxxxxx" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">ที่อยู่ / ที่ตั้งสถานศึกษา</label>
+                    <input type="text" name="address" value="<?= htmlspecialchars($schoolData['address'] ?? '') ?>" placeholder="เช่น หมู่ 4 ต.หนองหว้า อ.กระสัง จ.บุรีรัมย์ 31160" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="block font-bold text-slate-700 mb-1">URL โลโก้ / ตราประจำโรงเรียน</label>
+                    <input type="url" name="logo" value="<?= htmlspecialchars($schoolData['logo'] ?? '') ?>" placeholder="https://..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('schoolProfileSection').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer">
+                    💾 บันทึกข้อมูลโรงเรียน
+                </button>
+            </div>
+        </form>
     </div>
 
     <?php if ($message): ?>

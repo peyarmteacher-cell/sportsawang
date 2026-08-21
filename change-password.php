@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ไปยังหน้าหลักตามสิทธิ์
             if ($user['role'] === 'SCHOOL') {
                 header("Location: /school/index.php");
+            } elseif ($user['role'] === 'REFEREE' || $user['role'] === 'JUDGE') {
+                header("Location: /judge/index.php");
             } else {
                 header("Location: /admin/index.php");
             }

@@ -26,7 +26,7 @@ interface SchoolDashboardProps {
 }
 
 export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentSchoolId }) => {
-  const [activeTab, setActiveTab] = useState<'REGISTRATION' | 'STUDENTS' | 'COACHES' | 'CERTIFICATES'>('REGISTRATION');
+  const [activeTab, setActiveTab] = useState<'REGISTRATION' | 'STUDENTS' | 'COACHES' | 'CERTIFICATES' | 'SCHOOL_PROFILE'>('REGISTRATION');
   const [viewingCert, setViewingCert] = useState<Certificate | null>(null);
 
   const school = sportsStore.getSchools().find((s) => s.id === currentSchoolId) || sportsStore.getSchools()[0];
@@ -37,6 +37,47 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentSchoolI
   const registrations = sportsStore.getRegistrations().filter((r) => r.school_id === school.id);
   const certificates = sportsStore.getCertificates().filter((c) => c.school_id === school.id);
   const regStudents = sportsStore.getRegistrationStudents();
+
+  // School Profile Edit State
+  const [schoolFormData, setSchoolFormData] = useState<Partial<School>>({
+    school_name: school.school_name,
+    short_name: school.short_name || '',
+    director_name: school.director_name || '',
+    address: school.address || '',
+    phone: school.phone || '',
+    logo: school.logo || ''
+  });
+  const [schoolProfileSaveMessage, setSchoolProfileSaveMessage] = useState('');
+
+  // Keep form data in sync if school changes
+  React.useEffect(() => {
+    setSchoolFormData({
+      school_name: school.school_name,
+      short_name: school.short_name || '',
+      director_name: school.director_name || '',
+      address: school.address || '',
+      phone: school.phone || '',
+      logo: school.logo || ''
+    });
+  }, [school]);
+
+  const handleSaveSchoolProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolFormData.school_name?.trim()) {
+      alert('กรุณากรอกชื่อสถานศึกษา');
+      return;
+    }
+    sportsStore.updateSchool(school.id, {
+      school_name: schoolFormData.school_name.trim(),
+      short_name: schoolFormData.short_name?.trim() || schoolFormData.school_name.trim(),
+      director_name: schoolFormData.director_name?.trim() || '',
+      address: schoolFormData.address?.trim() || '',
+      phone: schoolFormData.phone?.trim() || '',
+      logo: schoolFormData.logo?.trim() || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150'
+    });
+    setSchoolProfileSaveMessage('บันทึกและปรับปรุงข้อมูลสถานศึกษาเรียบร้อยแล้ว');
+    setTimeout(() => setSchoolProfileSaveMessage(''), 4000);
+  };
 
   // Registration Form State
   const [selectedSportId, setSelectedSportId] = useState(sports[0]?.id || '');
@@ -238,6 +279,17 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentSchoolI
             }`}
           >
             <Award className="w-3.5 h-3.5" /> เกียรติบัตร ({certificates.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('SCHOOL_PROFILE')}
+            className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'SCHOOL_PROFILE'
+                ? 'bg-white text-blue-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <SchoolIcon className="w-3.5 h-3.5" /> ข้อมูลโรงเรียน / แก้ไขข้อมูล
           </button>
         </div>
       </div>
@@ -615,6 +667,184 @@ export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentSchoolI
                 ยังไม่มีเกียรติบัตรที่ออกให้สำหรับโรงเรียนนี้ (จะออกอัตโนมัติเมื่อกรรมการบันทึกผลการแข่งขัน)
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: SCHOOL_PROFILE */}
+      {activeTab === 'SCHOOL_PROFILE' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+              <div>
+                <h2 className="text-xl font-bold font-['Kanit'] text-slate-900 flex items-center gap-2">
+                  <SchoolIcon className="w-6 h-6 text-indigo-600" />
+                  จัดการและแก้ไขข้อมูลสถานศึกษา
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  ปรับปรุงข้อมูลผู้บริหารสถานศึกษา ที่อยู่ เบอร์โทรศัพท์ และโลโก้โรงเรียน เพื่อความถูกต้องในการออกเกียรติบัตรและเอกสารสรุปผล
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-3 py-1 bg-slate-100 text-slate-700 rounded-full font-mono font-medium">
+                  SMIS: {school.smis_code || school.school_code}
+                </span>
+              </div>
+            </div>
+
+            {schoolProfileSaveMessage && (
+              <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center gap-2 font-medium">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>{schoolProfileSaveMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSchoolProfile} className="mt-6 space-y-6">
+              {/* Live Preview Card */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                <img
+                  src={schoolFormData.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150'}
+                  alt="ตัวอย่างโลโก้"
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-white shadow-sm bg-white shrink-0"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150';
+                  }}
+                />
+                <div className="text-center sm:text-left flex-1 min-w-0">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded uppercase">
+                    ตัวอย่างการแสดงผล
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-900 font-['Kanit'] mt-1 truncate">
+                    {schoolFormData.school_name || 'ชื่อโรงเรียน'}
+                  </h3>
+                  <p className="text-xs text-slate-600 font-medium">
+                    ผู้อำนวยการ: <span className="text-slate-900">{schoolFormData.director_name || 'ยังไม่ระบุชื่อผู้อำนวยการ'}</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    ที่อยู่: {schoolFormData.address || '-'} | โทร. {schoolFormData.phone || '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    ชื่อเต็มสถานศึกษา <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={schoolFormData.school_name || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, school_name: e.target.value })}
+                    placeholder="เช่น โรงเรียนบ้านหนองหว้า"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">ใช้พิมพ์ในเกียรติบัตรและรายงานผล</p>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    ชื่อย่อสถานศึกษา
+                  </label>
+                  <input
+                    type="text"
+                    value={schoolFormData.short_name || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, short_name: e.target.value })}
+                    placeholder="เช่น รร.บ้านหนองหว้า หรือ บ้านหนองหว้า"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">ใช้แสดงในตารางเหรียญรางวัลและตารางคะแนน</p>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    ชื่อ-นามสกุล ผู้อำนวยการโรงเรียน <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={schoolFormData.director_name || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, director_name: e.target.value })}
+                    placeholder="เช่น นายสมเกียรติ สว่างวงศ์"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-medium"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">ชื่อผู้บริหารสำหรับเอกสารทางการและการลงนาม</p>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    เบอร์โทรศัพท์ติดต่อสถานศึกษา
+                  </label>
+                  <input
+                    type="text"
+                    value={schoolFormData.phone || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, phone: e.target.value })}
+                    placeholder="เช่น 044-689123 หรือ 081-xxxxxxx"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    ที่อยู่ / ที่ตั้งสถานศึกษา
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={schoolFormData.address || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, address: e.target.value })}
+                    placeholder="เช่น หมู่ 4 ต.หนองหว้า อ.กระสัง จ.บุรีรัมย์ 31160"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="font-semibold text-slate-700 block mb-1.5">
+                    URL รูปภาพตราสัญลักษณ์ / โลโก้โรงเรียน
+                  </label>
+                  <input
+                    type="url"
+                    value={schoolFormData.logo || ''}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, logo: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  />
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-[11px] text-slate-400">เลือกโลโก้ตัวอย่าง:</span>
+                    <button
+                      type="button"
+                      onClick={() => setSchoolFormData({ ...schoolFormData, logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150' })}
+                      className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-medium"
+                    >
+                      ตรามาตรฐาน 1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSchoolFormData({ ...schoolFormData, logo: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=150' })}
+                      className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-medium"
+                    >
+                      ตรามาตรฐาน 2
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSchoolFormData({ ...schoolFormData, logo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=150' })}
+                      className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-medium"
+                    >
+                      ตรามาตรฐาน 3
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow-xs transition-all flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> บันทึกการเปลี่ยนแปลงข้อมูลโรงเรียน
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

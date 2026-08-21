@@ -86,7 +86,7 @@ require_once __DIR__ . '/includes/header.php';
                 <?= htmlspecialchars($comp['competition_name']) ?>
             </h1>
             <p class="text-xs sm:text-sm text-slate-300">
-                📍 สถานที่: <?= htmlspecialchars($comp['venue']) ?> | 🗓️ วันที่: <?= htmlspecialchars($comp['start_date']) ?> ถึง <?= htmlspecialchars($comp['end_date']) ?>
+                📍 สถานที่: <?= htmlspecialchars($comp['venue']) ?> | 🗓️ วันที่: <?= formatThaiDateRange($comp['start_date'], $comp['end_date']) ?>
             </p>
         </div>
     </div>
