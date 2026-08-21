@@ -1,0 +1,944 @@
+import {
+  Competition,
+  School,
+  User,
+  Student,
+  Coach,
+  Sport,
+  Event,
+  Registration,
+  RegistrationStudent,
+  Result,
+  Certificate,
+  Setting,
+  ActivityLog,
+  CertificateTemplate,
+  SchoolMedalSummary
+} from '../types';
+import {
+  INITIAL_COMPETITIONS,
+  INITIAL_SCHOOLS,
+  INITIAL_USERS,
+  INITIAL_SPORTS,
+  INITIAL_EVENTS,
+  INITIAL_STUDENTS,
+  INITIAL_COACHES,
+  INITIAL_REGISTRATIONS,
+  INITIAL_REGISTRATION_STUDENTS,
+  INITIAL_RESULTS,
+  INITIAL_CERTIFICATES,
+  INITIAL_SETTINGS,
+  INITIAL_TEMPLATES,
+  INITIAL_LOGS
+} from '../data/initialData';
+
+const STORAGE_KEYS = {
+  COMPETITIONS: 'ssk_sports_competitions',
+  CURRENT_COMP_ID: 'ssk_sports_current_comp_id',
+  SCHOOLS: 'ssk_sports_schools',
+  USERS: 'ssk_sports_users',
+  CURRENT_USER: 'ssk_sports_current_user',
+  STUDENTS: 'ssk_sports_students',
+  COACHES: 'ssk_sports_coaches',
+  SPORTS: 'ssk_sports_sports',
+  EVENTS: 'ssk_sports_events',
+  REGISTRATIONS: 'ssk_sports_registrations',
+  REGISTRATION_STUDENTS: 'ssk_sports_reg_students',
+  RESULTS: 'ssk_sports_results',
+  CERTIFICATES: 'ssk_sports_certificates',
+  SETTINGS: 'ssk_sports_settings',
+  TEMPLATES: 'ssk_sports_templates',
+  LOGS: 'ssk_sports_logs',
+  DRIVE_FILES: 'ssk_sports_drive_files'
+};
+
+export interface DriveUploadedFile {
+  id: string;
+  name: string;
+  folder: string;
+  size: string;
+  uploaded_at: string;
+  url: string;
+  type: string;
+}
+
+class SportsDataStore {
+  private listeners: Set<() => void> = new Set();
+
+  constructor() {
+    this.init();
+  }
+
+  private init() {
+    if (!localStorage.getItem(STORAGE_KEYS.COMPETITIONS)) {
+      this.resetToDefaults();
+    }
+  }
+
+  public subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify() {
+    this.listeners.forEach((l) => l());
+  }
+
+  public resetToDefaults() {
+    localStorage.setItem(STORAGE_KEYS.COMPETITIONS, JSON.stringify(INITIAL_COMPETITIONS));
+    localStorage.setItem(STORAGE_KEYS.CURRENT_COMP_ID, 'comp-2569');
+    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(INITIAL_SCHOOLS));
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(INITIAL_STUDENTS));
+    localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(INITIAL_COACHES));
+    localStorage.setItem(STORAGE_KEYS.SPORTS, JSON.stringify(INITIAL_SPORTS));
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(INITIAL_EVENTS));
+    localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(INITIAL_REGISTRATIONS));
+    localStorage.setItem(STORAGE_KEYS.REGISTRATION_STUDENTS, JSON.stringify(INITIAL_REGISTRATION_STUDENTS));
+    localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(INITIAL_RESULTS));
+    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(INITIAL_CERTIFICATES));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
+    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(INITIAL_TEMPLATES));
+    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(INITIAL_LOGS));
+    localStorage.setItem(STORAGE_KEYS.DRIVE_FILES, JSON.stringify([
+      {
+        id: '1aBcDeFgHiJkLmNoPqRsTuVwXyZ_001',
+        name: 'สสก.2569-00001_เด็กชายธีรดนย์_โรงเรียนบ้านหนองหว้า.pdf',
+        folder: 'Certificates_Students',
+        size: '345 KB',
+        uploaded_at: '2026-08-20T10:00:00.000Z',
+        url: 'https://drive.google.com/file/d/sample001/view',
+        type: 'application/pdf'
+      },
+      {
+        id: '1aBcDeFgHiJkLmNoPqRsTuVwXyZ_003',
+        name: 'สสก.2569-00003_นายวิชัย_โรงเรียนบ้านหนองหว้า.pdf',
+        folder: 'Certificates_Coaches',
+        size: '350 KB',
+        uploaded_at: '2026-08-20T10:00:00.000Z',
+        url: 'https://drive.google.com/file/d/sample003/view',
+        type: 'application/pdf'
+      }
+    ]));
+    this.notify();
+  }
+
+  // --- Getters ---
+  public getCompetitions(): Competition[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.COMPETITIONS) || '[]');
+  }
+
+  public getCurrentCompetitionId(): string {
+    return localStorage.getItem(STORAGE_KEYS.CURRENT_COMP_ID) || 'comp-2569';
+  }
+
+  public setCurrentCompetitionId(id: string) {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_COMP_ID, id);
+    this.notify();
+  }
+
+  public getCurrentCompetition(): Competition {
+    const comps = this.getCompetitions();
+    const curId = this.getCurrentCompetitionId();
+    return comps.find((c) => c.id === curId) || comps[0] || INITIAL_COMPETITIONS[0];
+  }
+
+  public getSchools(): School[] {
+    const list: School[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.SCHOOLS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((s) => !s.competition_id || s.competition_id === compId);
+  }
+
+  public getAllSchools(): School[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SCHOOLS) || '[]');
+  }
+
+  public getUsers(): User[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+  }
+
+  public getCurrentUser(): User | null {
+    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  public setCurrentUser(user: User | null) {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      this.logActivity('LOGIN', 'users', user.id, `เข้าสู่ระบบสำเร็จในบทบาท ${user.role}`);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      this.logActivity('LOGOUT', 'users', undefined, 'ออกจากระบบ');
+    }
+    this.notify();
+  }
+
+  public getSports(): Sport[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SPORTS) || '[]');
+  }
+
+  public getEvents(): Event[] {
+    const list: Event[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((e) => !e.competition_id || e.competition_id === compId);
+  }
+
+  public getStudents(): Student[] {
+    const list: Student[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((s) => !s.competition_id || s.competition_id === compId);
+  }
+
+  public getCoaches(): Coach[] {
+    const list: Coach[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.COACHES) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((c) => !c.competition_id || c.competition_id === compId);
+  }
+
+  public getRegistrations(): Registration[] {
+    const list: Registration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((r) => !r.competition_id || r.competition_id === compId);
+  }
+
+  public getRegistrationStudents(): RegistrationStudent[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATION_STUDENTS) || '[]');
+  }
+
+  public getResults(): Result[] {
+    const list: Result[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.RESULTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((r) => !r.competition_id || r.competition_id === compId);
+  }
+
+  public getCertificates(): Certificate[] {
+    const list: Certificate[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.CERTIFICATES) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    return list.filter((c) => !c.competition_id || c.competition_id === compId);
+  }
+
+  public getSettings(): Setting[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '[]');
+  }
+
+  public getSetting(key: string, defaultVal: string = ''): string {
+    const list = this.getSettings();
+    const item = list.find((s) => s.setting_key === key);
+    return item ? item.setting_value : defaultVal;
+  }
+
+  public setSetting(key: string, value: string, description?: string) {
+    const list = this.getSettings();
+    const idx = list.findIndex((s) => s.setting_key === key);
+    if (idx >= 0) {
+      list[idx].setting_value = value;
+      list[idx].updated_at = new Date().toISOString();
+      if (description) list[idx].description = description;
+    } else {
+      list.push({
+        id: `set-${Date.now()}`,
+        setting_key: key,
+        setting_value: value,
+        description: description || key,
+        updated_at: new Date().toISOString()
+      });
+    }
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(list));
+    this.notify();
+  }
+
+  public getTemplates(): CertificateTemplate[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) || '[]');
+  }
+
+  public getLogs(): ActivityLog[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS) || '[]');
+  }
+
+  public getDriveFiles(): DriveUploadedFile[] {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.DRIVE_FILES) || '[]');
+  }
+
+  // --- Activity Log Helper ---
+  public logActivity(action: string, table_name: string, record_id?: string, details?: string) {
+    const user = this.getCurrentUser();
+    const logs = this.getLogs();
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      user_id: user?.id,
+      user_name: user ? `${user.full_name} (${user.role})` : 'System / Public',
+      action: details ? `${action}: ${details}` : action,
+      table_name,
+      record_id,
+      ip_address: '127.0.0.1 (Local Session)',
+      user_agent: navigator.userAgent,
+      created_at: new Date().toISOString()
+    };
+    logs.unshift(newLog);
+    // Keep last 300 logs
+    if (logs.length > 300) logs.pop();
+    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+  }
+
+  // --- Medal Calculations ---
+  public getSchoolMedalSummary(): SchoolMedalSummary[] {
+    const schools = this.getSchools();
+    const results = this.getResults().filter((r) => r.status === 'CONFIRMED');
+    const criteria = this.getSetting('MEDAL_RANKING_CRITERIA', 'GOLD_FIRST');
+
+    const summaryMap: Record<string, { gold: number; silver: number; bronze: number; total: number }> = {};
+
+    schools.forEach((sch) => {
+      summaryMap[sch.id] = { gold: 0, silver: 0, bronze: 0, total: 0 };
+    });
+
+    results.forEach((res) => {
+      if (!summaryMap[res.school_id]) {
+        summaryMap[res.school_id] = { gold: 0, silver: 0, bronze: 0, total: 0 };
+      }
+      if (res.medal === 'GOLD') summaryMap[res.school_id].gold += 1;
+      else if (res.medal === 'SILVER') summaryMap[res.school_id].silver += 1;
+      else if (res.medal === 'BRONZE') summaryMap[res.school_id].bronze += 1;
+      summaryMap[res.school_id].total =
+        summaryMap[res.school_id].gold + summaryMap[res.school_id].silver + summaryMap[res.school_id].bronze;
+    });
+
+    const list: SchoolMedalSummary[] = schools.map((sch) => {
+      const stats = summaryMap[sch.id] || { gold: 0, silver: 0, bronze: 0, total: 0 };
+      return {
+        school_id: sch.id,
+        school_name: sch.school_name,
+        short_name: sch.short_name,
+        logo: sch.logo,
+        gold: stats.gold,
+        silver: stats.silver,
+        bronze: stats.bronze,
+        total: stats.total,
+        rank: 0
+      };
+    });
+
+    // Sorting algorithm according to settings
+    list.sort((a, b) => {
+      if (criteria === 'TOTAL_FIRST') {
+        if (b.total !== a.total) return b.total - a.total;
+        if (b.gold !== a.gold) return b.gold - a.gold;
+        if (b.silver !== a.silver) return b.silver - a.silver;
+        return b.bronze - a.bronze;
+      } else {
+        // GOLD_FIRST default
+        if (b.gold !== a.gold) return b.gold - a.gold;
+        if (b.silver !== a.silver) return b.silver - a.silver;
+        if (b.bronze !== a.bronze) return b.bronze - a.bronze;
+        return b.total - a.total;
+      }
+    });
+
+    list.forEach((item, idx) => {
+      item.rank = idx + 1;
+    });
+
+    return list;
+  }
+
+  // --- CRUD Operations ---
+
+  // Schools
+  public addSchool(schoolData: Omit<School, 'id' | 'created_at'>): School {
+    const list = this.getAllSchools();
+    const newSchool: School = {
+      ...schoolData,
+      id: `sch-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    list.push(newSchool);
+    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
+    this.logActivity('INSERT', 'schools', newSchool.id, `เพิ่มโรงเรียน ${newSchool.school_name}`);
+    this.notify();
+    return newSchool;
+  }
+
+  public updateSchool(id: string, updates: Partial<School>) {
+    const list = this.getAllSchools();
+    const idx = list.findIndex((s) => s.id === id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
+      this.logActivity('UPDATE', 'schools', id, `แก้ไขข้อมูลโรงเรียน ${list[idx].school_name}`);
+      this.notify();
+    }
+  }
+
+  public deleteSchool(id: string) {
+    const list = this.getAllSchools().filter((s) => s.id !== id);
+    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
+    this.logActivity('DELETE', 'schools', id, `ลบโรงเรียน ID: ${id}`);
+    this.notify();
+  }
+
+  // Users
+  public addUser(userData: Omit<User, 'id' | 'created_at'>): User {
+    const list = this.getUsers();
+    const newUser: User = {
+      ...userData,
+      id: `user-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    list.push(newUser);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
+    this.logActivity('INSERT', 'users', newUser.id, `เพิ่มผู้ใช้งาน ${newUser.username} (${newUser.role})`);
+    this.notify();
+    return newUser;
+  }
+
+  public updateUser(id: string, updates: Partial<User>) {
+    const list = this.getUsers();
+    const idx = list.findIndex((u) => u.id === id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
+      this.logActivity('UPDATE', 'users', id, `แก้ไขผู้ใช้งาน ${list[idx].username}`);
+      this.notify();
+    }
+  }
+
+  public deleteUser(id: string) {
+    const list = this.getUsers().filter((u) => u.id !== id);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
+    this.logActivity('DELETE', 'users', id, `ลบผู้ใช้งาน ID: ${id}`);
+    this.notify();
+  }
+
+  // Students
+  public addStudent(studentData: Omit<Student, 'id' | 'created_at'>): Student {
+    const list = this.getStudents();
+    // Check duplication
+    const duplicate = list.find(
+      (s) =>
+        s.school_id === studentData.school_id &&
+        s.first_name.trim() === studentData.first_name.trim() &&
+        s.last_name.trim() === studentData.last_name.trim()
+    );
+    if (duplicate) {
+      throw new Error(`พบข้อมูลนักเรียน ${studentData.prefix} ${studentData.first_name} ${studentData.last_name} ในระบบแล้ว`);
+    }
+
+    const newStudent: Student = {
+      ...studentData,
+      id: `stu-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString()
+    };
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+    all.push(newStudent);
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(all));
+    this.logActivity('INSERT', 'students', newStudent.id, `เพิ่มนักเรียน ${newStudent.first_name} ${newStudent.last_name}`);
+    this.notify();
+    return newStudent;
+  }
+
+  public bulkImportStudents(students: Array<Omit<Student, 'id' | 'created_at'>>): { success: number; skipped: number } {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+    let success = 0;
+    let skipped = 0;
+
+    students.forEach((s) => {
+      const exists = all.some(
+        (existing: Student) =>
+          existing.school_id === s.school_id &&
+          existing.first_name.trim() === s.first_name.trim() &&
+          existing.last_name.trim() === s.last_name.trim()
+      );
+      if (!exists) {
+        all.push({
+          ...s,
+          id: `stu-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+          created_at: new Date().toISOString()
+        });
+        success++;
+      } else {
+        skipped++;
+      }
+    });
+
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(all));
+    this.logActivity('IMPORT', 'students', undefined, `นำเข้านักเรียนสำเร็จ ${success} คน, ข้ามซ้ำ ${skipped} คน`);
+    this.notify();
+    return { success, skipped };
+  }
+
+  public updateStudent(id: string, updates: Partial<Student>) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+    const idx = all.findIndex((s: Student) => s.id === id);
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(all));
+      this.logActivity('UPDATE', 'students', id, `แก้ไขข้อมูลนักเรียน ID: ${id}`);
+      this.notify();
+    }
+  }
+
+  public deleteStudent(id: string) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]').filter((s: Student) => s.id !== id);
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(all));
+    this.logActivity('DELETE', 'students', id, `ลบนักเรียน ID: ${id}`);
+    this.notify();
+  }
+
+  // Coaches
+  public addCoach(coachData: Omit<Coach, 'id' | 'created_at'>): Coach {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.COACHES) || '[]');
+    const newCoach: Coach = {
+      ...coachData,
+      id: `coa-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString()
+    };
+    all.push(newCoach);
+    localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(all));
+    this.logActivity('INSERT', 'coaches', newCoach.id, `เพิ่มครูผู้ฝึกสอน ${newCoach.first_name} ${newCoach.last_name}`);
+    this.notify();
+    return newCoach;
+  }
+
+  public updateCoach(id: string, updates: Partial<Coach>) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.COACHES) || '[]');
+    const idx = all.findIndex((c: Coach) => c.id === id);
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(all));
+      this.logActivity('UPDATE', 'coaches', id, `แก้ไขครูผู้ฝึกสอน ID: ${id}`);
+      this.notify();
+    }
+  }
+
+  public deleteCoach(id: string) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.COACHES) || '[]').filter((c: Coach) => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.COACHES, JSON.stringify(all));
+    this.logActivity('DELETE', 'coaches', id, `ลบครูผู้ฝึกสอน ID: ${id}`);
+    this.notify();
+  }
+
+  // Sports & Events
+  public addSport(sport: Omit<Sport, 'id' | 'created_at'>): Sport {
+    const all = this.getSports();
+    const newSport: Sport = {
+      ...sport,
+      id: `sp-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    all.push(newSport);
+    localStorage.setItem(STORAGE_KEYS.SPORTS, JSON.stringify(all));
+    this.logActivity('INSERT', 'sports', newSport.id, `เพิ่มกีฬา ${newSport.sport_name}`);
+    this.notify();
+    return newSport;
+  }
+
+  public addEvent(eventData: Omit<Event, 'id' | 'created_at'>): Event {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
+    const newEvent: Event = {
+      ...eventData,
+      id: `ev-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    all.push(newEvent);
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(all));
+    this.logActivity('INSERT', 'events', newEvent.id, `เพิ่มรายการแข่งขัน ${newEvent.event_name}`);
+    this.notify();
+    return newEvent;
+  }
+
+  public updateEvent(id: string, updates: Partial<Event>) {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
+    const idx = all.findIndex((e: Event) => e.id === id);
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...updates };
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(all));
+      this.logActivity('UPDATE', 'events', id, `แก้ไขรายการแข่งขัน ID: ${id}`);
+      this.notify();
+    }
+  }
+
+  // Registration
+  public submitRegistration(
+    eventId: string,
+    schoolId: string,
+    coachId: string | undefined,
+    studentIds: string[],
+    secondaryCoachId?: string
+  ): Registration {
+    const registrations = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+    const regStudents = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATION_STUDENTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+
+    // Check if already registered
+    const existingIndex = registrations.findIndex(
+      (r: Registration) => r.competition_id === compId && r.event_id === eventId && r.school_id === schoolId
+    );
+
+    let regId: string;
+    if (existingIndex >= 0) {
+      if (registrations[existingIndex].registration_status === 'LOCKED') {
+        throw new Error('รายการแข่งขันนี้ถูกล็อคแล้ว ไม่สามารถแก้ไขได้');
+      }
+      regId = registrations[existingIndex].id;
+      registrations[existingIndex].coach_id = coachId;
+      registrations[existingIndex].secondary_coach_id = secondaryCoachId;
+      registrations[existingIndex].registration_status = 'SUBMITTED';
+      registrations[existingIndex].submitted_at = new Date().toISOString();
+    } else {
+      regId = `reg-${Date.now()}`;
+      const newReg: Registration = {
+        id: regId,
+        competition_id: compId,
+        event_id: eventId,
+        school_id: schoolId,
+        coach_id: coachId,
+        secondary_coach_id: secondaryCoachId,
+        registration_status: 'SUBMITTED',
+        submitted_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      };
+      registrations.push(newReg);
+    }
+
+    // Replace student linkages
+    const filteredRegStudents = regStudents.filter((rs: RegistrationStudent) => rs.registration_id !== regId);
+    studentIds.forEach((sId, idx) => {
+      filteredRegStudents.push({
+        id: `rs-${Date.now()}-${idx}`,
+        registration_id: regId,
+        student_id: sId,
+        created_at: new Date().toISOString()
+      });
+    });
+
+    localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(registrations));
+    localStorage.setItem(STORAGE_KEYS.REGISTRATION_STUDENTS, JSON.stringify(filteredRegStudents));
+
+    this.logActivity(
+      'SUBMIT_REGISTRATION',
+      'registrations',
+      regId,
+      `โรงเรียน ID: ${schoolId} ลงทะเบียนรายการ ${eventId} (${studentIds.length} คน)`
+    );
+    this.notify();
+    return registrations.find((r: Registration) => r.id === regId)!;
+  }
+
+  public updateRegistrationStatus(regId: string, status: 'PENDING' | 'APPROVED' | 'REJECTED') {
+    const registrations = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+    const idx = registrations.findIndex((r: Registration) => r.id === regId);
+    if (idx >= 0) {
+      registrations[idx].registration_status = status;
+      if (status === 'APPROVED') {
+        registrations[idx].approved_at = new Date().toISOString();
+        registrations[idx].approved_by = this.getCurrentUser()?.username || 'admin';
+      }
+      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(registrations));
+      this.logActivity('UPDATE_STATUS', 'registrations', regId, `เปลี่ยนสถานะเป็น ${status}`);
+      this.notify();
+    }
+  }
+
+  public registerTeam(data: {
+    competition_id?: string;
+    school_id: string;
+    event_id: string;
+    coach_id?: string;
+    secondary_coach_id?: string;
+    registration_status?: 'APPROVED' | 'PENDING' | 'REJECTED';
+    registered_by?: string;
+    student_ids: string[];
+  }) {
+    return this.submitRegistration(
+      data.event_id,
+      data.school_id,
+      data.coach_id,
+      data.student_ids,
+      data.secondary_coach_id
+    );
+  }
+
+
+  // Results & Scoring (Crucial Workflow!)
+  public recordEventResult(
+    eventId: string,
+    placements: Array<{
+      school_id: string;
+      rank: 1 | 2 | 3 | 4;
+      award: string;
+      medal: 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
+      score?: string;
+      note?: string;
+    }>
+  ) {
+    const allResults = JSON.parse(localStorage.getItem(STORAGE_KEYS.RESULTS) || '[]');
+    const compId = this.getCurrentCompetitionId();
+    const user = this.getCurrentUser();
+    const recordedBy = user ? `${user.full_name} (${user.role})` : 'คณะกรรมการจัดการแข่งขัน';
+
+    // Remove prior results for this event in current competition
+    const filteredResults = allResults.filter(
+      (r: Result) => !(r.competition_id === compId && r.event_id === eventId)
+    );
+
+    placements.forEach((p, idx) => {
+      const newRes: Result = {
+        id: `res-${Date.now()}-${idx}`,
+        competition_id: compId,
+        event_id: eventId,
+        school_id: p.school_id,
+        rank: p.rank,
+        award: p.award,
+        medal: p.medal,
+        score: p.score || '',
+        note: p.note || '',
+        recorded_by: recordedBy,
+        recorded_at: new Date().toISOString(),
+        status: 'CONFIRMED',
+        created_at: new Date().toISOString()
+      };
+      filteredResults.push(newRes);
+    });
+
+    // Mark event as completed
+    const events = JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]');
+    const evIdx = events.findIndex((e: Event) => e.id === eventId);
+    if (evIdx >= 0) {
+      events[evIdx].status = 'COMPLETED';
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+    }
+
+    localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(filteredResults));
+    this.logActivity('RECORD_RESULT', 'results', eventId, `บันทึกผลการแข่งขันสำหรับรายการ ID: ${eventId}`);
+    this.notify();
+  }
+
+  // Sequential Certificate Number Allocation (Simulating Database Transaction & Lock)
+  private getNextCertificateNumber(): string {
+    const prefix = this.getSetting('CERTIFICATE_PREFIX', 'สสก.2569-');
+    let counter = parseInt(this.getSetting('CERTIFICATE_COUNTER', '0'), 10);
+    counter += 1;
+    this.setSetting('CERTIFICATE_COUNTER', counter.toString());
+    const padded = String(counter).padStart(5, '0');
+    return `${prefix}${padded}`;
+  }
+
+  // Certificate Auto-Generator from Results ("One Data, Many Uses")
+  public generateCertificatesForEvent(eventId: string): { createdCount: number; skippedCount: number } {
+    const compId = this.getCurrentCompetitionId();
+    const results = this.getResults().filter((r) => r.event_id === eventId && r.status === 'CONFIRMED');
+    const existingCerts = JSON.parse(localStorage.getItem(STORAGE_KEYS.CERTIFICATES) || '[]');
+    const registrations = this.getRegistrations().filter((r) => r.event_id === eventId);
+    const regStudents = this.getRegistrationStudents();
+    const students = this.getStudents();
+    const coaches = this.getCoaches();
+    const schools = this.getSchools();
+    const events = this.getEvents();
+    const sports = this.getSports();
+
+    const targetEvent = events.find((e) => e.id === eventId);
+    const targetSport = sports.find((s) => s.id === targetEvent?.sport_id);
+
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    results.forEach((res) => {
+      const school = schools.find((s) => s.id === res.school_id);
+      const reg = registrations.find((r) => r.school_id === res.school_id);
+
+      if (!reg || !school) return;
+
+      // 1. Generate for Students in this registration
+      const linkedStudents = regStudents
+        .filter((rs) => rs.registration_id === reg.id)
+        .map((rs) => students.find((s) => s.id === rs.student_id))
+        .filter(Boolean) as Student[];
+
+      linkedStudents.forEach((student) => {
+        // Prevent duplicate certificate
+        const alreadyExists = existingCerts.some(
+          (c: Certificate) =>
+            c.competition_id === compId &&
+            c.event_id === eventId &&
+            c.recipient_id === student.id &&
+            c.status === 'ISSUED'
+        );
+
+        if (alreadyExists) {
+          skippedCount++;
+        } else {
+          const certNo = this.getNextCertificateNumber();
+          const qrToken = `TOKEN_SSK69_${Math.random().toString(36).substring(2, 10).toUpperCase()}_${certNo.replace(/[^0-9]/g, '')}`;
+          const awardText = `${res.award} (${res.medal === 'GOLD' ? 'เหรียญทอง 🥇' : res.medal === 'SILVER' ? 'เหรียญเงิน 🥈' : res.medal === 'BRONZE' ? 'เหรียญทองแดง 🥉' : ''})`;
+
+          const newCert: Certificate = {
+            id: `cert-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+            competition_id: compId,
+            certificate_no: certNo,
+            recipient_type: 'STUDENT',
+            recipient_id: student.id,
+            recipient_name: `${student.prefix}${student.first_name} ${student.last_name}`,
+            school_id: school.id,
+            school_name: school.school_name,
+            event_id: eventId,
+            event_name: targetEvent?.event_name || 'รายการแข่งขัน',
+            sport_name: targetSport?.sport_name || 'กีฬา',
+            result_id: res.id,
+            award: awardText,
+            medal: res.medal,
+            issue_date: new Date().toISOString().split('T')[0],
+            template_type: 'STUDENT',
+            drive_file_id: `gdrive_${certNo}_${Date.now()}`,
+            drive_url: `https://drive.google.com/file/d/gdrive_${certNo}/view`,
+            qr_token: qrToken,
+            status: 'ISSUED',
+            created_at: new Date().toISOString()
+          };
+
+          existingCerts.push(newCert);
+          createdCount++;
+        }
+      });
+
+      // 2. Generate for Coach(es)
+      const coachList: Coach[] = [];
+      if (reg.coach_id) {
+        const c1 = coaches.find((c) => c.id === reg.coach_id);
+        if (c1) coachList.push(c1);
+      }
+      if (reg.secondary_coach_id) {
+        const c2 = coaches.find((c) => c.id === reg.secondary_coach_id);
+        if (c2) coachList.push(c2);
+      }
+
+      coachList.forEach((coach) => {
+        const alreadyExists = existingCerts.some(
+          (c: Certificate) =>
+            c.competition_id === compId &&
+            c.event_id === eventId &&
+            c.recipient_id === coach.id &&
+            c.recipient_type === 'COACH' &&
+            c.status === 'ISSUED'
+        );
+
+        if (alreadyExists) {
+          skippedCount++;
+        } else {
+          const certNo = this.getNextCertificateNumber();
+          const qrToken = `TOKEN_SSK69_${Math.random().toString(36).substring(2, 10).toUpperCase()}_${certNo.replace(/[^0-9]/g, '')}`;
+          const awardText = `ครูผู้ฝึกสอนนักกีฬา ${res.award} (${res.medal === 'GOLD' ? 'เหรียญทอง 🥇' : res.medal === 'SILVER' ? 'เหรียญเงิน 🥈' : res.medal === 'BRONZE' ? 'เหรียญทองแดง 🥉' : ''})`;
+
+          const newCert: Certificate = {
+            id: `cert-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+            competition_id: compId,
+            certificate_no: certNo,
+            recipient_type: 'COACH',
+            recipient_id: coach.id,
+            recipient_name: `${coach.prefix}${coach.first_name} ${coach.last_name}`,
+            school_id: school.id,
+            school_name: school.school_name,
+            event_id: eventId,
+            event_name: targetEvent?.event_name || 'รายการแข่งขัน',
+            sport_name: targetSport?.sport_name || 'กีฬา',
+            result_id: res.id,
+            award: awardText,
+            medal: res.medal,
+            issue_date: new Date().toISOString().split('T')[0],
+            template_type: 'COACH',
+            drive_file_id: `gdrive_${certNo}_${Date.now()}`,
+            drive_url: `https://drive.google.com/file/d/gdrive_${certNo}/view`,
+            qr_token: qrToken,
+            status: 'ISSUED',
+            created_at: new Date().toISOString()
+          };
+
+          existingCerts.push(newCert);
+          createdCount++;
+        }
+      });
+    });
+
+    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(existingCerts));
+    this.logActivity(
+      'GENERATE_CERTIFICATES',
+      'certificates',
+      eventId,
+      `สร้างเกียรติบัตรสำหรับรายการ ${targetEvent?.event_name}: สำเร็จ ${createdCount} ใบ, ซ้ำเดิม ${skippedCount} ใบ`
+    );
+    this.notify();
+    return { createdCount, skippedCount };
+  }
+
+  // Batch Certificate Generator for All Completed Events
+  public generateAllBatchCertificates(): { totalCreated: number; totalSkipped: number; eventCount: number } {
+    const completedEvents = this.getEvents().filter((e) => e.status === 'COMPLETED');
+    let totalCreated = 0;
+    let totalSkipped = 0;
+
+    completedEvents.forEach((ev) => {
+      const res = this.generateCertificatesForEvent(ev.id);
+      totalCreated += res.createdCount;
+      totalSkipped += res.skippedCount;
+    });
+
+    return { totalCreated, totalSkipped, eventCount: completedEvents.length };
+  }
+
+  // Google Drive File Sync Simulator
+  public syncCertificateToGoogleDrive(cert: Certificate) {
+    const files = this.getDriveFiles();
+    const fileName = `${cert.certificate_no}_${cert.recipient_name.replace(/\s+/g, '_')}_${cert.school_name.replace(/\s+/g, '_')}.pdf`;
+    const folder = cert.recipient_type === 'STUDENT' ? 'Certificates_Students' : 'Certificates_Coaches';
+
+    const existingIdx = files.findIndex((f) => f.name === fileName);
+    const fileEntry: DriveUploadedFile = {
+      id: cert.drive_file_id || `drive_${Date.now()}`,
+      name: fileName,
+      folder,
+      size: `${Math.floor(Math.random() * 150 + 250)} KB`,
+      uploaded_at: new Date().toISOString(),
+      url: cert.drive_url || `https://drive.google.com/file/d/${cert.drive_file_id || 'sample'}/view`,
+      type: 'application/pdf'
+    };
+
+    if (existingIdx >= 0) {
+      files[existingIdx] = fileEntry;
+    } else {
+      files.unshift(fileEntry);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.DRIVE_FILES, JSON.stringify(files));
+    this.logActivity('GOOGLE_DRIVE_SYNC', 'drive_files', fileEntry.id, `อัปโหลด ${fileName} ลง Google Drive`);
+    this.notify();
+    return fileEntry;
+  }
+
+  public logout() {
+    this.setCurrentUser(null);
+  }
+
+  public resetToInitialData() {
+    this.resetToDefaults();
+  }
+
+  public updateCompetition(comp: Competition) {
+    const competitions = this.getCompetitions();
+    const idx = competitions.findIndex((c) => c.id === comp.id);
+    if (idx >= 0) {
+      competitions[idx] = comp;
+      localStorage.setItem(STORAGE_KEYS.COMPETITIONS, JSON.stringify(competitions));
+      this.logActivity('UPDATE_COMPETITION', 'competitions', comp.id, `อัปเดตข้อมูลการแข่งขัน ${comp.competition_name}`);
+      this.notify();
+    }
+  }
+
+  public batchGenerateAllCertificates(): number {
+    const res = this.generateAllBatchCertificates();
+    return res.totalCreated;
+  }
+}
+
+
+export const sportsStore = new SportsDataStore();
