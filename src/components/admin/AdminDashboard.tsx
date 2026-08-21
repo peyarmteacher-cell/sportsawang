@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { sportsStore } from '../../services/store';
 import { School, Sport, Event, Competition, Certificate, Log } from '../../types';
 import { CertificateModal } from '../CertificateModal';
-import { generateDatabaseSql, generateReadmeDocumentation } from '../../services/exportSqlAndPhp';
+import { 
+  generateDatabaseSql, 
+  generateReadmeDocumentation, 
+  generateDatabaseConfigPhp, 
+  generatePhpInstallScript 
+} from '../../services/exportSqlAndPhp';
 import confetti from 'canvas-confetti';
 import {
   Settings,
@@ -22,7 +27,12 @@ import {
   Shield,
   Activity,
   Printer,
-  Sparkles
+  Sparkles,
+  Key,
+  Lock,
+  RotateCcw,
+  Check,
+  Server
 } from 'lucide-react';
 import { formatThaiDate } from '../../utils/thaiFormatter';
 
@@ -31,22 +41,26 @@ export const AdminDashboard: React.FC = () => {
   const [viewingCert, setViewingCert] = useState<Certificate | null>(null);
   const [isGeneratingBatch, setIsGeneratingBatch] = useState(false);
   const [batchSuccessCount, setBatchSuccessCount] = useState<number | null>(null);
+  const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
 
   const comp = sportsStore.getCurrentCompetition();
-  const schools = sportsStore.getSchools();
+  const schools = sportsStore.getAllSchools();
   const sports = sportsStore.getSports();
   const events = sportsStore.getEvents();
   const certificates = sportsStore.getCertificates();
   const logs = sportsStore.getLogs();
+  const users = sportsStore.getUsers();
 
   // Settings State
   const [compForm, setCompForm] = useState<Competition>({ ...comp });
   const [savedSettings, setSavedSettings] = useState(false);
 
-  // New School Modal
+  // New/Edit School Modal
   const [showAddSchool, setShowAddSchool] = useState(false);
-  const [newSchool, setNewSchool] = useState<Partial<School>>({
+  const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
+  const [schoolFormData, setSchoolFormData] = useState<Partial<School>>({
     school_code: '',
+    smis_code: '',
     school_name: '',
     short_name: '',
     logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150',
@@ -70,6 +84,11 @@ export const AdminDashboard: React.FC = () => {
     award_type: 'เหรียญทอง/เงิน/ทองแดง + เกียรติบัตร'
   });
 
+  const showNotification = (msg: string) => {
+    setActionSuccessMessage(msg);
+    setTimeout(() => setActionSuccessMessage(null), 4000);
+  };
+
   const handleSaveCompetitionSettings = (e: React.FormEvent) => {
     e.preventDefault();
     sportsStore.updateCompetition(compForm);
@@ -88,25 +107,11 @@ export const AdminDashboard: React.FC = () => {
     }, 600);
   };
 
-  const handleCreateSchool = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSchool.school_name) return;
-
-    sportsStore.addSchool({
-      competition_id: comp.id,
-      school_code: newSchool.school_code || `SCH-${Date.now().toString().slice(-4)}`,
-      school_name: newSchool.school_name,
-      short_name: newSchool.short_name || newSchool.school_name,
-      logo: newSchool.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150',
-      address: newSchool.address || 'จ.บุรีรัมย์',
-      director_name: newSchool.director_name,
-      phone: newSchool.phone,
-      status: 'ACTIVE'
-    });
-
-    setShowAddSchool(false);
-    setNewSchool({
+  const handleOpenAddSchool = () => {
+    setEditingSchoolId(null);
+    setSchoolFormData({
       school_code: '',
+      smis_code: '',
       school_name: '',
       short_name: '',
       logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150',
@@ -114,6 +119,59 @@ export const AdminDashboard: React.FC = () => {
       director_name: '',
       phone: '044-xxxxxx'
     });
+    setShowAddSchool(true);
+  };
+
+  const handleOpenEditSchool = (sch: School) => {
+    setEditingSchoolId(sch.id);
+    setSchoolFormData({
+      school_code: sch.school_code,
+      smis_code: sch.smis_code || sch.school_code,
+      school_name: sch.school_name,
+      short_name: sch.short_name,
+      logo: sch.logo,
+      address: sch.address,
+      director_name: sch.director_name,
+      phone: sch.phone
+    });
+    setShowAddSchool(true);
+  };
+
+  const handleSaveSchool = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolFormData.school_name) return;
+
+    if (editingSchoolId) {
+      sportsStore.updateSchool(editingSchoolId, schoolFormData);
+      showNotification(`อัปเดตข้อมูล ${schoolFormData.school_name} สำเร็จ`);
+    } else {
+      sportsStore.addSchool({
+        competition_id: comp.id,
+        school_code: schoolFormData.school_code || schoolFormData.smis_code || `310300${Math.floor(10 + Math.random() * 89)}`,
+        smis_code: schoolFormData.smis_code || schoolFormData.school_code,
+        school_name: schoolFormData.school_name,
+        short_name: schoolFormData.short_name || schoolFormData.school_name,
+        logo: schoolFormData.logo || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150',
+        address: schoolFormData.address || 'จ.บุรีรัมย์',
+        director_name: schoolFormData.director_name,
+        phone: schoolFormData.phone,
+        status: 'ACTIVE'
+      });
+      showNotification(`เพิ่มโรงเรียน ${schoolFormData.school_name} และสร้างบัญชี SMIS สำเร็จ`);
+    }
+
+    setShowAddSchool(false);
+  };
+
+  const handleResetSchoolPassword = (schoolId: string, schoolName: string) => {
+    if (window.confirm(`คุณต้องการรีเซ็ตรหัสผ่านของ "${schoolName}" กลับเป็นรหัสเริ่มต้น '123456' ใช่หรือไม่?`)) {
+      const ok = sportsStore.resetSchoolPasswordToDefault(schoolId);
+      if (ok) {
+        showNotification(`รีเซ็ตรหัสผ่านของ "${schoolName}" เป็น 123456 เรียบร้อยแล้ว (บังคับเปลี่ยนรหัสเมื่อเข้าสู่ระบบ)`);
+      } else {
+        alert('ไม่พบบัญชีผู้ใช้ของโรงเรียนนี้');
+      }
+    }
   };
 
   const handleCreateEvent = (e: React.FormEvent) => {
@@ -136,44 +194,33 @@ export const AdminDashboard: React.FC = () => {
     });
 
     setShowAddEvent(false);
-    setNewEvent({
-      sport_id: sports[0]?.id || '',
-      event_code: 'EV-NEW',
-      event_name: '',
-      gender: 'MALE',
-      age_group: 'อายุไม่เกิน 12 ปี',
-      grade: 'ป.4 - ป.6',
-      competition_type: 'TEAM',
-      min_players: 7,
-      max_players: 12,
-      award_type: 'เหรียญทอง/เงิน/ทองแดง + เกียรติบัตร'
-    });
+    showNotification(`เพิ่มรายการ ${newEvent.event_name} สำเร็จ`);
   };
 
-  const handleDownloadSql = () => {
-    const sql = generateDatabaseSql();
-    const blob = new Blob([sql], { type: 'text/sql;charset=utf-8' });
+  const handleDownloadFile = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'sports_competition_database.sql';
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadReadme = () => {
-    const readme = generateReadmeDocumentation();
-    const blob = new Blob([readme], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'README_PHP_MYSQL_SYSTEM.md';
-    link.click();
-    URL.revokeObjectURL(url);
+    showNotification(`ดาวน์โหลดไฟล์ ${filename} เรียบร้อยแล้ว`);
   };
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Action Notification */}
+      {actionSuccessMessage && (
+        <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-lg flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            <span>{actionSuccessMessage}</span>
+          </div>
+          <button onClick={() => setActionSuccessMessage(null)} className="text-white/80 hover:text-white font-bold">&times;</button>
+        </div>
+      )}
+
       {/* Admin Nav Bar */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -386,7 +433,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: CERTIFICATE GENERATOR & GOOGLE DRIVE */}
+      {/* TAB 2: CERTIFICATES */}
       {activeTab === 'CERTIFICATES' && (
         <div className="space-y-6">
           <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -491,39 +538,80 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: SCHOOLS */}
+      {/* TAB 3: SCHOOLS & SMIS CREDENTIAL MANAGEMENT */}
       {activeTab === 'SCHOOLS' && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-4 gap-4">
             <div>
-              <h2 className="text-lg font-bold font-['Kanit'] text-slate-900">
-                จัดการรายชื่อโรงเรียนในกลุ่ม ({schools.length} แห่ง)
+              <h2 className="text-lg font-bold font-['Kanit'] text-slate-900 flex items-center gap-2">
+                <SchoolIcon className="w-5 h-5 text-blue-600" />
+                จัดการรายชื่อโรงเรียนและบัญชีผู้ใช้งาน SMIS ({schools.length} แห่ง)
               </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                กลุ่มโรงเรียนสว่างสูงกระสัง: Username คือรหัส SMIS 8 หลัก, รหัสผ่านเริ่มต้นคือ <span className="font-mono font-bold text-blue-600">123456</span>
+              </p>
             </div>
             <button
-              onClick={() => setShowAddSchool(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl flex items-center gap-1.5"
+              onClick={handleOpenAddSchool}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl flex items-center gap-1.5 self-start md:self-auto shadow-sm"
             >
               <Plus className="w-4 h-4" /> เพิ่มโรงเรียนใหม่
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {schools.map((sch) => (
-              <div key={sch.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3">
-                <img
-                  src={sch.logo}
-                  alt={sch.school_name}
-                  className="w-12 h-12 rounded-xl object-cover border"
-                  referrerPolicy="no-referrer"
-                />
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm font-['Prompt']">{sch.school_name}</h4>
-                  <p className="text-xs text-slate-500">รหัส: {sch.school_code}</p>
-                  <p className="text-xs text-slate-600 mt-1">ผอ. {sch.director_name || '-'}</p>
+            {schools.map((sch) => {
+              const schoolUser = users.find(u => u.school_id === sch.id || u.username === sch.smis_code || u.username === sch.school_code);
+              const mustChange = schoolUser?.must_change_password;
+
+              return (
+                <div key={sch.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all shadow-xs flex flex-col justify-between space-y-3">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={sch.logo}
+                      alt={sch.school_name}
+                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white p-0.5 shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 text-sm font-['Prompt'] truncate">{sch.school_name}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">
+                          SMIS: {sch.smis_code || sch.school_code}
+                        </span>
+                        {mustChange ? (
+                          <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" /> ต้องเปลี่ยนรหัส
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <Check className="w-2.5 h-2.5" /> เปลี่ยนรหัสแล้ว
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">ผอ. {sch.director_name || '-'}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{sch.phone || '044-xxxxxx'}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                    <button
+                      onClick={() => handleResetSchoolPassword(sch.id, sch.school_name)}
+                      className="text-amber-700 hover:text-amber-800 font-medium text-[11px] flex items-center gap-1 px-2 py-1 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition"
+                      title="รีเซ็ตรหัสผ่านเป็น 123456"
+                    >
+                      <RotateCcw className="w-3 h-3" /> รีเซ็ตรหัส (123456)
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditSchool(sch)}
+                      className="text-blue-600 hover:text-blue-800 font-medium text-[11px] flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
+                    >
+                      <Edit2 className="w-3 h-3" /> แก้ไข
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -594,52 +682,98 @@ export const AdminDashboard: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
           <div>
             <h2 className="text-lg font-bold font-['Kanit'] text-slate-900 flex items-center gap-2">
-              <Database className="w-5 h-5 text-blue-600" />
-              ไฟล์ฐานข้อมูล MySQL 8.x และเอกสารระบบ PHP 8.x
+              <Server className="w-5 h-5 text-blue-600" />
+              การเชื่อมต่อฐานข้อมูล MySQL และระบบติดตั้งอัตโนมัติ (PHP / PDO Support)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              พร้อมนำไป Import ใช้งานบนเซิร์ฟเวอร์ PHP/MySQL จริงได้ 100%
+              ตั้งค่าฐานข้อมูลที่ไฟล์ <span className="font-mono font-bold text-blue-600">config/database.php</span> พร้อมระบบ Auto-Installer ติดตั้งโครงสร้างและรายชื่อโรงเรียน 12 แห่งให้อัตโนมัติ
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-6 rounded-2xl bg-blue-50/60 border border-blue-200 flex flex-col justify-between space-y-4">
+            {/* Card 1: config/database.php */}
+            <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-200 flex flex-col justify-between space-y-4">
               <div>
-                <div className="p-3 bg-blue-600 text-white rounded-xl inline-block mb-3">
-                  <Database className="w-6 h-6" />
+                <div className="p-2.5 bg-blue-600 text-white rounded-xl inline-block mb-2">
+                  <Key className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-900 text-base font-['Kanit']">
-                  MySQL 8.x Database Schema (`database.sql`)
+                <h3 className="font-bold text-slate-900 text-sm font-['Kanit']">
+                  1. ไฟล์ตั้งค่าฐานข้อมูล (`config/database.php`)
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  ไฟล์ SQL ประกอบด้วยตารางครบถ้วน 10 ตาราง: competitions, schools, users, sports, events, students, coaches, registrations, registration_students, results, certificates, activity_logs พร้อม Initial Seed Data ภาษาไทยสมบูรณ์
+                  ไฟล์ตั้งค่า Host, Port, Database, User, Password ด้วย PDO พร้อมโค้ดดักจับ <code className="bg-white px-1 py-0.5 rounded border border-blue-200">autoInstallDatabase()</code> เมื่อยังไม่พบฐานข้อมูล
                 </p>
               </div>
 
               <button
-                onClick={handleDownloadSql}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                onClick={() => handleDownloadFile(generateDatabaseConfigPhp(), 'database.php', 'application/x-php;charset=utf-8')}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+              >
+                <Download className="w-4 h-4" /> ดาวน์โหลด `config/database.php`
+              </button>
+            </div>
+
+            {/* Card 2: install.php */}
+            <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="p-2.5 bg-emerald-600 text-white rounded-xl inline-block mb-2">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-sm font-['Kanit']">
+                  2. หน้าติดตั้งฐานข้อมูลอัตโนมัติ (`install.php`)
+                </h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  เปิดรันผ่านเบราว์เซอร์เพื่อสร้างตารางทั้งหมด 13 ตาราง และนำเข้าโรงเรียน 12 แห่งและรหัสผ่าน SMIS เริ่มต้นให้อัตโนมัติ
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleDownloadFile(generatePhpInstallScript(), 'install.php', 'application/x-php;charset=utf-8')}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+              >
+                <Download className="w-4 h-4" /> ดาวน์โหลด `install.php`
+              </button>
+            </div>
+
+            {/* Card 3: database.sql */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="p-2.5 bg-slate-800 text-white rounded-xl inline-block mb-2">
+                  <Database className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-sm font-['Kanit']">
+                  3. สคริปต์ฐานข้อมูล (`database.sql`)
+                </h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  Schema สำหรับ MySQL 8.x/MariaDB ตารางครบทั้ง 13 ตาราง พร้อมข้อมูลโรงเรียนกลุ่มสว่างสูงกระสัง 12 แห่งและบัญชีผู้ใช้งาน
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleDownloadFile(generateDatabaseSql(), 'database.sql', 'text/sql;charset=utf-8')}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
               >
                 <Download className="w-4 h-4" /> ดาวน์โหลด `database.sql`
               </button>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
+            {/* Card 4: README.md */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
               <div>
-                <div className="p-3 bg-slate-800 text-white rounded-xl inline-block mb-3">
-                  <FileCode className="w-6 h-6" />
+                <div className="p-2.5 bg-purple-600 text-white rounded-xl inline-block mb-2">
+                  <FileCode className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-900 text-base font-['Kanit']">
-                  คู่มือระบบและ Architecture (`README.md`)
+                <h3 className="font-bold text-slate-900 text-sm font-['Kanit']">
+                  4. คู่มือการติดตั้งและใช้งาน (`README.md`)
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  เอกสารโครงสร้างระบบ PHP 8.x PDO, REST API Controllers, Google Drive Service Config, QR Verification Endpoint, Role-Based Access Control (RBAC)
+                  คำอธิบายการตั้งค่า .env, ตารางรายชื่อ SMIS Login ทั้ง 12 โรงเรียน และแนวคิด One Data, Many Uses
                 </p>
               </div>
 
               <button
-                onClick={handleDownloadReadme}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                onClick={() => handleDownloadFile(generateReadmeDocumentation(), 'README.md', 'text/markdown;charset=utf-8')}
+                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
               >
                 <Download className="w-4 h-4" /> ดาวน์โหลด `README.md`
               </button>
@@ -686,42 +820,69 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Add School Modal */}
+      {/* Add / Edit School Modal */}
       {showAddSchool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="text-base font-bold font-['Kanit'] text-slate-900">เพิ่มโรงเรียนใหม่ในกลุ่ม</h3>
-            <form onSubmit={handleCreateSchool} className="space-y-3 text-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200 animate-scale-up">
+            <h3 className="text-base font-bold font-['Kanit'] text-slate-900">
+              {editingSchoolId ? 'แก้ไขข้อมูลโรงเรียน' : 'เพิ่มโรงเรียนใหม่ในกลุ่ม'}
+            </h3>
+            <form onSubmit={handleSaveSchool} className="space-y-3 text-xs">
               <div>
                 <label className="font-semibold block mb-1">ชื่อโรงเรียน</label>
                 <input
                   type="text"
                   required
-                  value={newSchool.school_name}
-                  onChange={(e) => setNewSchool({ ...newSchool, school_name: e.target.value })}
+                  value={schoolFormData.school_name}
+                  onChange={(e) => setSchoolFormData({ ...schoolFormData, school_name: e.target.value })}
                   placeholder="เช่น โรงเรียนบ้านสวายสอ"
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2.5 border rounded-xl text-sm"
                 />
               </div>
 
-              <div>
-                <label className="font-semibold block mb-1">ชื่อย่อ</label>
-                <input
-                  type="text"
-                  value={newSchool.short_name}
-                  onChange={(e) => setNewSchool({ ...newSchool, short_name: e.target.value })}
-                  placeholder="เช่น รร.บ้านสวายสอ"
-                  className="w-full p-2 border rounded-lg"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold block mb-1">รหัส SMIS (8 หลัก)</label>
+                  <input
+                    type="text"
+                    required
+                    value={schoolFormData.smis_code || schoolFormData.school_code}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, smis_code: e.target.value, school_code: e.target.value })}
+                    placeholder="เช่น 31030099"
+                    className="w-full p-2.5 border rounded-xl text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold block mb-1">ชื่อย่อ</label>
+                  <input
+                    type="text"
+                    value={schoolFormData.short_name}
+                    onChange={(e) => setSchoolFormData({ ...schoolFormData, short_name: e.target.value })}
+                    placeholder="เช่น รร.บ้านสวายสอ"
+                    className="w-full p-2.5 border rounded-xl text-sm"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="font-semibold block mb-1">ผู้อำนวยการโรงเรียน</label>
                 <input
                   type="text"
-                  value={newSchool.director_name}
-                  onChange={(e) => setNewSchool({ ...newSchool, director_name: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
+                  value={schoolFormData.director_name}
+                  onChange={(e) => setSchoolFormData({ ...schoolFormData, director_name: e.target.value })}
+                  placeholder="เช่น ผอ.สมชาย สายลุย"
+                  className="w-full p-2.5 border rounded-xl text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">เบอร์โทรศัพท์</label>
+                <input
+                  type="text"
+                  value={schoolFormData.phone}
+                  onChange={(e) => setSchoolFormData({ ...schoolFormData, phone: e.target.value })}
+                  placeholder="044-xxxxxx"
+                  className="w-full p-2.5 border rounded-xl text-sm"
                 />
               </div>
 
@@ -729,12 +890,12 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddSchool(false)}
-                  className="px-4 py-2 bg-slate-200 rounded-lg"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition"
                 >
                   ยกเลิก
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                  บันทึก
+                <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition">
+                  {editingSchoolId ? 'บันทึกการแก้ไข' : 'บันทึกโรงเรียน'}
                 </button>
               </div>
             </form>

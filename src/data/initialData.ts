@@ -44,7 +44,8 @@ export const INITIAL_SCHOOLS: School[] = [
   {
     id: 'sch-01',
     competition_id: 'comp-2569',
-    school_code: '1031730001',
+    school_code: '31030064',
+    smis_code: '31030064',
     school_name: 'โรงเรียนบ้านหนองหว้า',
     short_name: 'บ้านหนองหว้า',
     address: 'หมู่ 4 ต.หนองหว้า อ.กระสัง จ.บุรีรัมย์ 31160',
@@ -57,7 +58,64 @@ export const INITIAL_SCHOOLS: School[] = [
   {
     id: 'sch-02',
     competition_id: 'comp-2569',
-    school_code: '1031730002',
+    school_code: '31030059',
+    smis_code: '31030059',
+    school_name: 'โรงเรียนบ้านโคกสว่าง',
+    short_name: 'บ้านโคกสว่าง',
+    address: 'หมู่ 1 ต.โคกสว่าง อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689125',
+    logo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายประสิทธิ์ พรหมรักษ์',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-03',
+    competition_id: 'comp-2569',
+    school_code: '31030066',
+    smis_code: '31030066',
+    school_name: 'โรงเรียนบ้านโคกสูงคูขาด',
+    short_name: 'บ้านโคกสูงคูขาด',
+    address: 'หมู่ 3 ต.หนองหว้า อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689127',
+    logo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายธีรยุทธ ศรีสุข',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-04',
+    competition_id: 'comp-2569',
+    school_code: '31030081',
+    smis_code: '31030081',
+    school_name: 'โรงเรียนบ้านบุกระสัง',
+    short_name: 'บ้านบุกระสัง',
+    address: 'หมู่ 5 ต.กระสัง อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689126',
+    logo: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นางกนกพร ใจกล้า',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-05',
+    competition_id: 'comp-2569',
+    school_code: '31030060',
+    smis_code: '31030060',
+    school_name: 'โรงเรียนบ้านโคกลอย',
+    short_name: 'บ้านโคกลอย',
+    address: 'หมู่ 2 ต.โคกลอย อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689128',
+    logo: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายเอกชัย บุญรักษา',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-06',
+    competition_id: 'comp-2569',
+    school_code: '31030083',
+    smis_code: '31030083',
     school_name: 'โรงเรียนบ้านสระสะแก',
     short_name: 'บ้านสระสะแก',
     address: 'หมู่ 2 ต.สระสะแก อ.กระสัง จ.บุรีรัมย์ 31160',
@@ -68,64 +126,13 @@ export const INITIAL_SCHOOLS: School[] = [
     created_at: '2026-08-01T08:00:00.000Z'
   },
   {
-    id: 'sch-03',
-    competition_id: 'comp-2569',
-    school_code: '1031730003',
-    school_name: 'โรงเรียนบ้านสว่าง',
-    short_name: 'บ้านสว่าง',
-    address: 'หมู่ 1 ต.สว่าง อ.กระสัง จ.บุรีรัมย์ 31160',
-    phone: '044-689125',
-    logo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=128&auto=format&fit=crop&q=80',
-    status: 'ACTIVE',
-    director_name: 'นายประสิทธิ์ พรหมรักษ์',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
-    id: 'sch-04',
-    competition_id: 'comp-2569',
-    school_code: '1031730004',
-    school_name: 'โรงเรียนบ้านกระสัง',
-    short_name: 'บ้านกระสัง',
-    address: 'หมู่ 3 ต.กระสัง อ.กระสัง จ.บุรีรัมย์ 31160',
-    phone: '044-689126',
-    logo: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&auto=format&fit=crop&q=80',
-    status: 'ACTIVE',
-    director_name: 'นางกนกพร ใจกล้า',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
-    id: 'sch-05',
-    competition_id: 'comp-2569',
-    school_code: '1031730005',
-    school_name: 'โรงเรียนบ้านสูงเนิน',
-    short_name: 'บ้านสูงเนิน',
-    address: 'หมู่ 5 ต.สูงเนิน อ.กระสัง จ.บุรีรัมย์ 31160',
-    phone: '044-689127',
-    logo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=128&auto=format&fit=crop&q=80',
-    status: 'ACTIVE',
-    director_name: 'นายธีรยุทธ ศรีสุข',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
-    id: 'sch-06',
-    competition_id: 'comp-2569',
-    school_code: '1031730006',
-    school_name: 'โรงเรียนบ้านโคกยาง',
-    short_name: 'บ้านโคกยาง',
-    address: 'หมู่ 7 ต.โคกยาง อ.กระสัง จ.บุรีรัมย์ 31160',
-    phone: '044-689128',
-    logo: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=128&auto=format&fit=crop&q=80',
-    status: 'ACTIVE',
-    director_name: 'นายเอกชัย บุญรักษา',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
     id: 'sch-07',
     competition_id: 'comp-2569',
-    school_code: '1031730007',
-    school_name: 'โรงเรียนบ้านตาจิตร',
-    short_name: 'บ้านตาจิตร',
-    address: 'หมู่ 6 ต.ตาจิตร อ.กระสัง จ.บุรีรัมย์ 31160',
+    school_code: '31030082',
+    smis_code: '31030082',
+    school_name: 'โรงเรียนบ้านหนองมัน',
+    short_name: 'บ้านหนองมัน',
+    address: 'หมู่ 6 ต.หนองมัน อ.กระสัง จ.บุรีรัมย์ 31160',
     phone: '044-689129',
     logo: 'https://images.unsplash.com/photo-1562774053-701939374585?w=128&auto=format&fit=crop&q=80',
     status: 'ACTIVE',
@@ -135,14 +142,71 @@ export const INITIAL_SCHOOLS: School[] = [
   {
     id: 'sch-08',
     competition_id: 'comp-2569',
-    school_code: '1031730008',
-    school_name: 'โรงเรียนบ้านหนองบัว',
-    short_name: 'บ้านหนองบัว',
-    address: 'หมู่ 8 ต.หนองบัว อ.กระสัง จ.บุรีรัมย์ 31160',
+    school_code: '31030061',
+    smis_code: '31030061',
+    school_name: 'โรงเรียนบ้านตะกรุมทอง',
+    short_name: 'บ้านตะกรุมทอง',
+    address: 'หมู่ 7 ต.กระสัง อ.กระสัง จ.บุรีรัมย์ 31160',
     phone: '044-689130',
     logo: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=128&auto=format&fit=crop&q=80',
     status: 'ACTIVE',
     director_name: 'นายมนัส ปัญญารัตน์',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-09',
+    competition_id: 'comp-2569',
+    school_code: '31030062',
+    smis_code: '31030062',
+    school_name: 'โรงเรียนบ้านโนนพะไล',
+    short_name: 'บ้านโนนพะไล',
+    address: 'หมู่ 8 ต.กระสัง อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689131',
+    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายสุทธิพงษ์ เจริญทรัพย์',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-10',
+    competition_id: 'comp-2569',
+    school_code: '31030065',
+    smis_code: '31030065',
+    school_name: 'โรงเรียนบ้านสระตะเคียน',
+    short_name: 'บ้านสระตะเคียน',
+    address: 'หมู่ 9 ต.สระตะเคียน อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689132',
+    logo: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายชำนาญ กลิ่นแก้ว',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-11',
+    competition_id: 'comp-2569',
+    school_code: '31030067',
+    smis_code: '31030067',
+    school_name: 'โรงเรียนมิตรภาพโนนสมบูรณ์',
+    short_name: 'มิตรภาพโนนสมบูรณ์',
+    address: 'หมู่ 10 ต.โนนสมบูรณ์ อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689133',
+    logo: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นางสาวพัชราภรณ์ พิมพ์ดี',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'sch-12',
+    competition_id: 'comp-2569',
+    school_code: '31030063',
+    smis_code: '31030063',
+    school_name: 'โรงเรียนบ้านสะเดาหวาน',
+    short_name: 'บ้านสะเดาหวาน',
+    address: 'หมู่ 11 ต.สะเดาหวาน อ.กระสัง จ.บุรีรัมย์ 31160',
+    phone: '044-689134',
+    logo: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=128&auto=format&fit=crop&q=80',
+    status: 'ACTIVE',
+    director_name: 'นายอนุชิต พรมเทศ',
     created_at: '2026-08-01T08:00:00.000Z'
   }
 ];
@@ -152,6 +216,7 @@ export const INITIAL_USERS: User[] = [
     id: 'user-01',
     username: 'superadmin',
     password_hash: '$2y$10$wT8fH2pS/k5vY...', // admin1234
+    password_plain: 'admin1234',
     full_name: 'ศุภกร รัตนสวัสดิ์ (Super Admin)',
     email: 'superadmin@sawangsung.ac.th',
     role: 'SUPER_ADMIN',
@@ -164,6 +229,7 @@ export const INITIAL_USERS: User[] = [
     id: 'user-02',
     username: 'admin',
     password_hash: '$2y$10$wT8fH2pS/k5vY...', // admin1234
+    password_plain: 'admin1234',
     full_name: 'อภิชาติ วงศ์สว่าง (ฝ่ายจัดการแข่งขัน)',
     email: 'admin@sawangsung.ac.th',
     role: 'ADMIN',
@@ -173,41 +239,185 @@ export const INITIAL_USERS: User[] = [
     created_at: '2026-08-01T08:00:00.000Z'
   },
   {
-    id: 'user-03',
-    school_id: 'sch-01',
-    username: 'school_nongwa',
-    password_hash: '$2y$10$wT8fH2pS/k5vY...', // pass1234
-    full_name: 'ครูสมชาย ดีเลิศ (รร.บ้านหนองหว้า)',
-    email: 'nongwa@school.ac.th',
-    role: 'SCHOOL',
-    status: 'ACTIVE',
-    phone: '086-1122334',
-    last_login: '2026-08-20T16:20:00.000Z',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
-    id: 'user-04',
-    school_id: 'sch-02',
-    username: 'school_srasakae',
-    password_hash: '$2y$10$wT8fH2pS/k5vY...', // pass1234
-    full_name: 'ครูสุวรรณา แจ่มใส (รร.บ้านสระสะแก)',
-    email: 'srasakae@school.ac.th',
-    role: 'SCHOOL',
-    status: 'ACTIVE',
-    phone: '084-5566778',
-    last_login: '2026-08-20T15:10:00.000Z',
-    created_at: '2026-08-01T08:00:00.000Z'
-  },
-  {
     id: 'user-05',
     username: 'referee1',
     password_hash: '$2y$10$wT8fH2pS/k5vY...', // judge1234
-    full_name: 'อาจารย์พิชัย ยุติธรรม (ประธานผู้ตัดสินกีฬาฟุตบอล/กรีฑา)',
+    password_plain: 'judge1234',
+    full_name: 'อาจารย์พิชัย ยุติธรรม (ประธานผู้ตัดสินกีฬา)',
     email: 'referee1@sawangsung.ac.th',
     role: 'JUDGE',
     status: 'ACTIVE',
     phone: '082-9988776',
     last_login: '2026-08-20T18:00:00.000Z',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  // 12 School Admin Users (Username = SMIS 8 digits, Default Password = 123456)
+  {
+    id: 'user-sch-01',
+    school_id: 'sch-01',
+    username: '31030064',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านหนองหว้า (SMIS: 31030064)',
+    email: 'nongwa@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '086-1122334',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-02',
+    school_id: 'sch-02',
+    username: '31030059',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านโคกสว่าง (SMIS: 31030059)',
+    email: 'khoksawang@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '084-5566778',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-03',
+    school_id: 'sch-03',
+    username: '31030066',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านโคกสูงคูขาด (SMIS: 31030066)',
+    email: 'khoksung@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '082-3344556',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-04',
+    school_id: 'sch-04',
+    username: '31030081',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านบุกระสัง (SMIS: 31030081)',
+    email: 'bukrasang@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '087-4455667',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-05',
+    school_id: 'sch-05',
+    username: '31030060',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านโคกลอย (SMIS: 31030060)',
+    email: 'khokloy@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '083-5566778',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-06',
+    school_id: 'sch-06',
+    username: '31030083',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านสระสะแก (SMIS: 31030083)',
+    email: 'srasakae@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '086-6677889',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-07',
+    school_id: 'sch-07',
+    username: '31030082',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านหนองมัน (SMIS: 31030082)',
+    email: 'nongman@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '089-7788990',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-08',
+    school_id: 'sch-08',
+    username: '31030061',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านตะกรุมทอง (SMIS: 31030061)',
+    email: 'takrumthong@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '081-8899001',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-09',
+    school_id: 'sch-09',
+    username: '31030062',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านโนนพะไล (SMIS: 31030062)',
+    email: 'nonphalai@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '085-9900112',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-10',
+    school_id: 'sch-10',
+    username: '31030065',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านสระตะเคียน (SMIS: 31030065)',
+    email: 'sratakhian@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '088-0011223',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-11',
+    school_id: 'sch-11',
+    username: '31030067',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.มิตรภาพโนนสมบูรณ์ (SMIS: 31030067)',
+    email: 'mittraphap@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '084-1122335',
+    created_at: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'user-sch-12',
+    school_id: 'sch-12',
+    username: '31030063',
+    password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...', // 123456
+    password_plain: '123456',
+    full_name: 'ผู้ดูแลระบบ รร.บ้านสะเดาหวาน (SMIS: 31030063)',
+    email: 'sadauwan@sawangsung.ac.th',
+    role: 'SCHOOL',
+    status: 'ACTIVE',
+    must_change_password: true,
+    phone: '087-2233446',
     created_at: '2026-08-01T08:00:00.000Z'
   }
 ];

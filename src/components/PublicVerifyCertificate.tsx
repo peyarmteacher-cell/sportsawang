@@ -52,19 +52,19 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
     <div className="max-w-4xl mx-auto py-6 px-4">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex p-3 bg-blue-50 text-blue-700 rounded-2xl mb-3 border border-blue-100 shadow-xs">
+        <div className="inline-flex p-3 bg-indigo-50 text-indigo-700 rounded-2xl mb-3 border border-indigo-100 shadow-2xs">
           <ShieldCheck className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold font-['Kanit'] text-slate-900">
+        <h1 className="text-2xl md:text-3xl font-black font-['Kanit'] text-slate-900">
           ตรวจสอบเกียรติบัตรออนไลน์ (E-Certificate Verification)
         </h1>
-        <p className="text-slate-600 text-sm mt-1 max-w-xl mx-auto">
+        <p className="text-slate-500 text-xs md:text-sm mt-1 max-w-xl mx-auto">
           ระบบตรวจสอบความถูกต้องของเกียรติบัตร การแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง ประจำปี 2569
         </p>
       </div>
 
       {/* Search Input Box */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8">
+      <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 mb-8">
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -73,12 +73,12 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="กรอกเลขที่เกียรติบัตร (เช่น สสก.2569-00001), QR Token หรือชื่อผู้ได้รับ..."
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-full text-slate-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
             />
           </div>
           <button
             type="submit"
-            className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-full transition-all shadow-xs flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
             ตรวจสอบข้อมูล
@@ -87,7 +87,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
 
         {/* Quick sample chips */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <span>ตัวอย่างทดสอบ:</span>
+          <span className="font-semibold text-slate-700">ตัวอย่างทดสอบ:</span>
           {certificates.slice(0, 4).map((c) => (
             <button
               key={c.id}
@@ -95,7 +95,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                 setQuery(c.certificate_no);
                 handleSearchWith(c.certificate_no);
               }}
-              className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors font-mono"
+              className="px-3 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-transparent rounded-full transition-colors font-mono text-[11px] font-medium"
             >
               {c.certificate_no} ({c.recipient_name.split(' ')[0]})
             </button>
@@ -107,7 +107,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
       {searched && (
         <div>
           {selectedCert ? (
-            <div className="bg-white rounded-2xl shadow-md border-2 border-emerald-500/80 overflow-hidden animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-sm border-2 border-emerald-500/80 overflow-hidden animate-fadeIn">
               {/* Status Banner */}
               <div className="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                     </p>
                   </div>
                 </div>
-                <span className="text-xs px-3 py-1 bg-emerald-700/80 rounded-full font-semibold border border-emerald-400/40">
+                <span className="text-[10px] uppercase tracking-wider px-3 py-1 bg-emerald-700/80 rounded-full font-bold border border-emerald-400/40">
                   ISSUED / มีผลบังคับใช้
                 </span>
               </div>
@@ -129,11 +129,11 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                      <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                         <FileText className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">เลขที่เกียรติบัตร</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">เลขที่เกียรติบัตร</span>
                         <p className="text-base font-bold text-slate-900 font-mono">
                           {selectedCert.certificate_no}
                         </p>
@@ -145,11 +145,11 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                         <Award className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">ชื่อผู้ได้รับเกียรติบัตร</span>
-                        <p className="text-lg font-bold text-blue-900 font-['Kanit']">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">ชื่อผู้ได้รับเกียรติบัตร</span>
+                        <p className="text-lg font-bold text-indigo-950 font-['Kanit']">
                           {selectedCert.recipient_name}
                         </p>
-                        <span className="inline-block mt-0.5 text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded">
+                        <span className="inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">
                           {selectedCert.recipient_type === 'STUDENT' ? 'นักเรียน / นักกีฬา' : 'ครูผู้ฝึกสอน'}
                         </span>
                       </div>
@@ -160,8 +160,8 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                         <School className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">สถานศึกษา / สังกัด</span>
-                        <p className="text-base font-semibold text-slate-900">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">สถานศึกษา / สังกัด</span>
+                        <p className="text-base font-bold text-slate-900 font-['Prompt']">
                           {selectedCert.school_name}
                         </p>
                       </div>
@@ -174,7 +174,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                         <Award className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">รางวัลที่ได้รับ</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">รางวัลที่ได้รับ</span>
                         <p className="text-base font-bold text-amber-800">
                           {selectedCert.award}
                         </p>
@@ -186,8 +186,8 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                         <QrCode className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">รายการแข่งขัน / ชนิดกีฬา</span>
-                        <p className="text-sm font-semibold text-slate-900">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">รายการแข่งขัน / ชนิดกีฬา</span>
+                        <p className="text-sm font-bold text-slate-900">
                           {selectedCert.event_name}
                         </p>
                         <p className="text-xs text-slate-500 mt-0.5">
@@ -201,7 +201,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                         <Calendar className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">วันที่ออกเกียรติบัตร</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">วันที่ออกเกียรติบัตร</span>
                         <p className="text-sm font-semibold text-slate-900">
                           {formatThaiDate(selectedCert.issue_date, false)}
                         </p>
@@ -217,7 +217,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
                   </div>
                   <button
                     onClick={() => setViewingModalCert(selectedCert)}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-colors shadow-xs flex items-center gap-2"
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-colors shadow-xs flex items-center gap-2"
                   >
                     <FileText className="w-4 h-4" />
                     ดูฉบับเต็ม / ดาวน์โหลด PDF
@@ -226,7 +226,7 @@ export const PublicVerifyCertificate: React.FC<PublicVerifyCertificateProps> = (
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border-2 border-rose-300 p-8 text-center animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-xs border-2 border-rose-300 p-8 text-center animate-fadeIn">
               <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <XCircle className="w-8 h-8" />
               </div>

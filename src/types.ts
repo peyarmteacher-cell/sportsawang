@@ -21,7 +21,8 @@ export interface Competition {
 export interface School {
   id: string;
   competition_id: string;
-  school_code: string;
+  school_code: string; // SMIS 8 digits e.g. 31030064
+  smis_code?: string; // Explicit SMIS alias
   school_name: string;
   short_name: string;
   address: string;
@@ -35,12 +36,14 @@ export interface School {
 export interface User {
   id: string;
   school_id?: string; // null for SUPER_ADMIN, ADMIN, JUDGE (unless assigned)
-  username: string;
+  username: string; // For school admin, SMIS 8 digits e.g. 31030064
   password_hash: string; // bcrypt simulation
+  password_plain?: string; // For simulated display/reset
   full_name: string;
   email: string;
   role: Role;
   status: 'ACTIVE' | 'INACTIVE';
+  must_change_password?: boolean; // True by default for school accounts until changed
   phone?: string;
   last_login?: string;
   created_at: string;

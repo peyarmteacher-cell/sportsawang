@@ -79,41 +79,41 @@ export function App() {
       {/* Top Header Navbar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex items-center justify-between h-16 md:h-18">
             {/* Brand Logo & Title */}
             <div
               onClick={() => setActiveTab('DASHBOARD')}
               className="flex items-center gap-3 cursor-pointer select-none group"
             >
-              <div className="w-11 h-11 md:w-12 md:h-12 bg-gradient-to-tr from-amber-500 via-amber-600 to-yellow-500 rounded-2xl flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform shrink-0">
-                <Trophy className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-base shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0 font-['Kanit']">
+                SS
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-base md:text-lg font-['Kanit'] text-slate-900 tracking-tight">
-                    กีฬากลุ่มโรงเรียนสว่างสูงกระสัง ๒๕๖๙
+                  <span className="font-extrabold text-sm md:text-base font-['Kanit'] text-indigo-950 uppercase tracking-wider">
+                    สว่างสูงกระสังเกมส์ ๒๕๖๙
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-800 rounded-full border border-blue-200">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
                     PHP 8 / MySQL 8
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 hidden sm:block">
-                  สำนักงานเขตพื้นที่การศึกษาประถมศึกษาบุรีรัมย์ เขต ๒
+                <p className="text-[10px] text-slate-500 uppercase font-medium hidden sm:block">
+                  Sports Management System • สพป.บุรีรัมย์ เขต ๒
                 </p>
               </div>
             </div>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1.5">
               <button
                 onClick={() => {
                   setSelectedSchoolIdForFilter(undefined);
                   setActiveTab('DASHBOARD');
                 }}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all ${
                   activeTab === 'DASHBOARD'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
                 }`}
               >
                 หน้าหลัก & สรุปเหรียญ
@@ -124,10 +124,10 @@ export function App() {
                   setSelectedSchoolIdForFilter(undefined);
                   setActiveTab('RESULTS');
                 }}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all ${
                   activeTab === 'RESULTS'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
                 }`}
               >
                 ผลการแข่งขัน
@@ -135,10 +135,10 @@ export function App() {
 
               <button
                 onClick={() => setActiveTab('SPORTS')}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all ${
                   activeTab === 'SPORTS'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
                 }`}
               >
                 ชนิดกีฬา
@@ -146,10 +146,10 @@ export function App() {
 
               <button
                 onClick={() => setActiveTab('SCHOOLS')}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all ${
                   activeTab === 'SCHOOLS'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
                 }`}
               >
                 โรงเรียน
@@ -157,13 +157,13 @@ export function App() {
 
               <button
                 onClick={() => setActiveTab('VERIFY')}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 ${
                   activeTab === 'VERIFY'
-                    ? 'bg-emerald-50 text-emerald-800'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-50'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <ShieldCheck className="w-3.5 h-3.5" />
                 ตรวจสอบเกียรติบัตร QR
               </button>
 
@@ -171,10 +171,10 @@ export function App() {
               {currentUser && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') && (
                 <button
                   onClick={() => setActiveTab('ADMIN_CONSOLE')}
-                  className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 ${
                     activeTab === 'ADMIN_CONSOLE'
-                      ? 'bg-purple-100 text-purple-900'
-                      : 'text-purple-700 hover:bg-purple-50'
+                      ? 'bg-indigo-900 text-white shadow-xs'
+                      : 'text-indigo-700 hover:bg-indigo-50'
                   }`}
                 >
                   <Settings className="w-3.5 h-3.5" />
@@ -185,9 +185,9 @@ export function App() {
               {currentUser && currentUser.role === 'SCHOOL' && (
                 <button
                   onClick={() => setActiveTab('SCHOOL_PORTAL')}
-                  className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 ${
                     activeTab === 'SCHOOL_PORTAL'
-                      ? 'bg-emerald-100 text-emerald-900'
+                      ? 'bg-emerald-700 text-white shadow-xs'
                       : 'text-emerald-700 hover:bg-emerald-50'
                   }`}
                 >
@@ -199,10 +199,10 @@ export function App() {
               {currentUser && currentUser.role === 'JUDGE' && (
                 <button
                   onClick={() => setActiveTab('JUDGE_CONSOLE')}
-                  className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 ${
                     activeTab === 'JUDGE_CONSOLE'
-                      ? 'bg-amber-100 text-amber-900'
-                      : 'text-amber-700 hover:bg-amber-50'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-amber-800 hover:bg-amber-50'
                   }`}
                 >
                   <Medal className="w-3.5 h-3.5" />
@@ -212,20 +212,20 @@ export function App() {
             </nav>
 
             {/* Auth / Action Button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {currentUser ? (
-                <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-2xl border border-slate-200">
-                  <div className="px-3 py-1 text-left hidden sm:block">
+                <div className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded-full border border-slate-200">
+                  <div className="px-2.5 py-0.5 text-left hidden sm:block">
                     <p className="text-xs font-bold text-slate-800 font-['Kanit']">
                       {currentUser.full_name}
                     </p>
-                    <span className="text-[10px] text-blue-700 font-semibold uppercase">
+                    <span className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">
                       {currentUser.role}
                     </span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
                     title="ออกจากระบบ"
                   >
                     <LogOut className="w-4 h-4" />
@@ -234,7 +234,7 @@ export function App() {
               ) : (
                 <button
                   onClick={() => setShowLoginModal(true)}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-full transition-all shadow-xs hover:shadow-sm flex items-center gap-1.5"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   เข้าสู่ระบบ (RBAC)
@@ -307,7 +307,7 @@ export function App() {
                   setActiveTab('ADMIN_CONSOLE');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-xs font-semibold rounded-lg text-purple-800 bg-purple-50"
+                className="w-full text-left px-3 py-2 text-xs font-semibold rounded-lg text-indigo-800 bg-indigo-50"
               >
                 ผู้ดูแลระบบ (Admin Console)
               </button>
@@ -377,31 +377,33 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-8 no-print mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3">
-          <div className="flex items-center justify-center gap-2 text-sm font-bold font-['Kanit'] text-slate-800">
-            <span>🏆 กลุ่มโรงเรียนสว่างสูงกระสัง</span>
-            <span>•</span>
-            <span>สพป.บุรีรัมย์ เขต ๒</span>
-          </div>
+      <footer className="bg-white border-t border-slate-200 py-6 no-print mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest font-['Kanit']">
+                  SYSTEM ONLINE: ข้อมูลซิงค์อัตโนมัติ (ONE DATA, MANY USES)
+                </span>
+              </div>
+            </div>
 
-          <p className="text-xs text-slate-500 max-w-xl mx-auto">
-            ระบบบริหารจัดการแข่งขันกีฬา One Data, Many Uses — สรุปเหรียญรางวัลอัตโนมัติ ออกเกียรติบัตรพร้อม QR Code และซิงค์ Google Drive
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs text-slate-400">
-            <span>Tech Stack: PHP 8.x • MySQL 8.x • Bootstrap 5 • Chart.js • QR Code</span>
-            <button
-              onClick={() => {
-                if (confirm('คุณต้องการรีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้นหรือไม่?')) {
-                  sportsStore.resetToInitialData();
-                  window.location.reload();
-                }
-              }}
-              className="text-blue-600 hover:underline"
-            >
-              รีเซ็ตข้อมูลตัวอย่าง (Reset Data)
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
+              <span>กลุ่มโรงเรียนสว่างสูงกระสัง • สพป.บุรีรัมย์ เขต ๒</span>
+              <span>•</span>
+              <button
+                onClick={() => {
+                  if (confirm('คุณต้องการรีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้นหรือไม่?')) {
+                    sportsStore.resetToInitialData();
+                    window.location.reload();
+                  }
+                }}
+                className="text-indigo-600 hover:text-indigo-800 font-semibold"
+              >
+                รีเซ็ตข้อมูลตัวอย่าง
+              </button>
+            </div>
           </div>
         </div>
       </footer>

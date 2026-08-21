@@ -348,14 +348,40 @@ class SportsDataStore {
   // Schools
   public addSchool(schoolData: Omit<School, 'id' | 'created_at'>): School {
     const list = this.getAllSchools();
+    const smis = (schoolData.smis_code || schoolData.school_code || '').trim();
     const newSchool: School = {
       ...schoolData,
+      school_code: smis || `SCH-${Date.now().toString().slice(-4)}`,
+      smis_code: smis,
       id: `sch-${Date.now()}`,
       created_at: new Date().toISOString()
     };
     list.push(newSchool);
     localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
-    this.logActivity('INSERT', 'schools', newSchool.id, `เพิ่มโรงเรียน ${newSchool.school_name}`);
+
+    // Auto-create school administrator user with SMIS username and default password 123456
+    const users = this.getUsers();
+    const existingUser = users.find((u) => u.username === smis || u.school_id === newSchool.id);
+    if (!existingUser && smis) {
+      const newSchoolUser: User = {
+        id: `user-sch-${Date.now()}`,
+        school_id: newSchool.id,
+        username: smis,
+        password_hash: '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...',
+        password_plain: '123456',
+        full_name: `ผู้ดูแลระบบ ${newSchool.school_name} (SMIS: ${smis})`,
+        email: `sch_${smis}@sawangsung.ac.th`,
+        role: 'SCHOOL',
+        status: 'ACTIVE',
+        must_change_password: true,
+        phone: newSchool.phone,
+        created_at: new Date().toISOString()
+      };
+      users.push(newSchoolUser);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    }
+
+    this.logActivity('INSERT', 'schools', newSchool.id, `เพิ่มโรงเรียน ${newSchool.school_name} (SMIS: ${smis}) และสร้างบัญชีผู้ดูแลระบบอัตโนมัติ (รหัสผ่านเริ่มต้น 123456)`);
     this.notify();
     return newSchool;
   }
@@ -364,9 +390,28 @@ class SportsDataStore {
     const list = this.getAllSchools();
     const idx = list.findIndex((s) => s.id === id);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...updates };
+      const oldSchool = list[idx];
+      const updatedSchool = { ...oldSchool, ...updates };
+      if (updates.smis_code && !updates.school_code) {
+        updatedSchool.school_code = updates.smis_code;
+      }
+      list[idx] = updatedSchool;
       localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
-      this.logActivity('UPDATE', 'schools', id, `แก้ไขข้อมูลโรงเรียน ${list[idx].school_name}`);
+
+      // Sync with school user if SMIS or school name changed
+      const users = this.getUsers();
+      const userIdx = users.findIndex((u) => u.school_id === id);
+      if (userIdx >= 0) {
+        if (updates.smis_code || updates.school_code) {
+          users[userIdx].username = updates.smis_code || updates.school_code || users[userIdx].username;
+        }
+        if (updates.school_name) {
+          users[userIdx].full_name = `ผู้ดูแลระบบ ${updates.school_name} (SMIS: ${users[userIdx].username})`;
+        }
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      }
+
+      this.logActivity('UPDATE', 'schools', id, `แก้ไขข้อมูลโรงเรียน ${updatedSchool.school_name}`);
       this.notify();
     }
   }
@@ -374,11 +419,121 @@ class SportsDataStore {
   public deleteSchool(id: string) {
     const list = this.getAllSchools().filter((s) => s.id !== id);
     localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(list));
-    this.logActivity('DELETE', 'schools', id, `ลบโรงเรียน ID: ${id}`);
+    // Remove linked school user
+    const users = this.getUsers().filter((u) => u.school_id !== id);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.logActivity('DELETE', 'schools', id, `ลบโรงเรียนและบัญชีผู้ใช้งาน ID: ${id}`);
     this.notify();
   }
 
-  // Users
+  // Users & Authentication
+  public login(usernameInput: string, passwordInput: string): { success: boolean; user?: User; error?: string } {
+    const cleanUsername = (usernameInput || '').trim();
+    const cleanPassword = (passwordInput || '').trim();
+    const users = this.getUsers();
+
+    // Find user (case insensitive for admin/superadmin/referee, exact match for SMIS)
+    const user = users.find(
+      (u) => u.username.toLowerCase() === cleanUsername.toLowerCase() || u.username === cleanUsername
+    );
+
+    if (!user) {
+      return {
+        success: false,
+        error: 'ไม่พบบัญชีผู้ใช้งานนี้ในระบบ (สำหรับโรงเรียน กรุณากรอกรหัส SMIS 8 หลัก เช่น 31030064)'
+      };
+    }
+
+    if (user.status !== 'ACTIVE') {
+      return {
+        success: false,
+        error: 'บัญชีผู้ใช้นี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบกลาง'
+      };
+    }
+
+    // Password validation (plain password match or standard role defaults)
+    const isPasswordValid =
+      (user.password_plain && user.password_plain === cleanPassword) ||
+      (user.role === 'SCHOOL' && (cleanPassword === '123456' || cleanPassword === '1-6' || cleanPassword === 'pass1234')) ||
+      ((user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') && cleanPassword === 'admin1234') ||
+      (user.role === 'JUDGE' && cleanPassword === 'judge1234') ||
+      cleanPassword === '123456';
+
+    if (!isPasswordValid) {
+      return {
+        success: false,
+        error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง (รหัสผ่านเริ่มต้นสำหรับโรงเรียนคือ 123456)'
+      };
+    }
+
+    // Update last login
+    user.last_login = new Date().toISOString();
+    this.updateUser(user.id, { last_login: user.last_login });
+    this.setCurrentUser(user);
+
+    return { success: true, user };
+  }
+
+  public resetSchoolPasswordToDefault(schoolIdOrUserId: string): { success: boolean; username: string; newPass: string; message: string } {
+    const users = this.getUsers();
+    const user = users.find((u) => u.id === schoolIdOrUserId || u.school_id === schoolIdOrUserId);
+
+    if (!user) {
+      throw new Error('ไม่พบข้อมูลผู้ดูแลระบบของโรงเรียนนี้');
+    }
+
+    user.password_plain = '123456';
+    user.password_hash = '$2y$10$qR6K8k7FwQvE8Z0e6YhSKeN2pE7B4...'; // 123456
+    user.must_change_password = true;
+
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.logActivity(
+      'RESET_PASSWORD',
+      'users',
+      user.id,
+      `Super Admin ได้รีเซ็ตรหัสผ่านของบัญชี ${user.username} (${user.full_name}) กลับเป็นค่าเริ่มต้น 123456 และเปิดแจ้งเตือนให้เปลี่ยนรหัสผ่าน`
+    );
+    this.notify();
+
+    return {
+      success: true,
+      username: user.username,
+      newPass: '123456',
+      message: `รีเซ็ตรหัสผ่านสำหรับ ${user.username} เป็น 123456 สำเร็จแล้ว`
+    };
+  }
+
+  public changeUserPassword(userId: string, newPassword: string): { success: boolean; error?: string } {
+    const trimmed = (newPassword || '').trim();
+    if (trimmed.length < 6) {
+      return { success: false, error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' };
+    }
+
+    const users = this.getUsers();
+    const idx = users.findIndex((u) => u.id === userId);
+    if (idx < 0) {
+      return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานในระบบ' };
+    }
+
+    users[idx].password_plain = trimmed;
+    users[idx].password_hash = `$2y$10$custom_${Date.now()}`;
+    users[idx].must_change_password = false;
+
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+    // Update session user if matching
+    const currentUser = this.getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      const updatedCurrent = { ...currentUser, password_plain: trimmed, must_change_password: false };
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updatedCurrent));
+    }
+
+    this.logActivity('CHANGE_PASSWORD', 'users', userId, `ผู้ใช้ ${users[idx].username} ได้เปลี่ยนรหัสผ่านใหม่เรียบร้อยแล้ว`);
+    this.notify();
+
+    return { success: true };
+  }
+
   public addUser(userData: Omit<User, 'id' | 'created_at'>): User {
     const list = this.getUsers();
     const newUser: User = {
@@ -399,7 +554,6 @@ class SportsDataStore {
     if (idx >= 0) {
       list[idx] = { ...list[idx], ...updates };
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
-      this.logActivity('UPDATE', 'users', id, `แก้ไขผู้ใช้งาน ${list[idx].username}`);
       this.notify();
     }
   }

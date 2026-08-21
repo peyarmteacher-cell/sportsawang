@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { sportsStore } from '../services/store';
 import { User, Role } from '../types';
-import { LogIn, KeyRound, ShieldCheck, UserCheck, School, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { LogIn, KeyRound, ShieldCheck, UserCheck, School, X, Sparkles, CheckCircle2, Lock, Check } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -13,6 +13,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [mustChangeUser, setMustChangeUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   if (!isOpen) return null;
 
@@ -24,7 +27,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
     const targetUser = users.find((u) => u.username.toLowerCase() === username.trim().toLowerCase());
     if (!targetUser) {
-      setError('ไม่พบชื่อผู้ใช้งานนี้ในระบบ');
+      setError('ไม่พบชื่อผู้ใช้งานหรือรหัส SMIS นี้ในระบบ');
       return;
     }
 
@@ -33,24 +36,65 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
       return;
     }
 
-    // Authenticate (in real PHP backend: password_verify($password, $user['password']))
-    // Default demo passwords match admin1234 or pass1234 or judge1234
+    // Check if user must change password
+    if (targetUser.must_change_password) {
+      setMustChangeUser(targetUser);
+      return;
+    }
+
     sportsStore.setCurrentUser(targetUser);
     onSuccess(targetUser);
     onClose();
   };
 
+  const handleChangePasswordAndLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mustChangeUser) return;
+    setError('');
+
+    if (newPassword.length < 6) {
+      setError('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+      return;
+    }
+
+    if (newPassword === '123456') {
+      setError('กรุณาอย่าใช้รหัสผ่านเริ่มต้น (123456) เพื่อความปลอดภัย');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('รหัสผ่านยืนยันไม่ตรงกัน');
+      return;
+    }
+
+    const result = sportsStore.changeUserPassword(mustChangeUser.id, newPassword);
+    if (result.success) {
+      const updated = sportsStore.getUsers().find(u => u.id === mustChangeUser.id);
+      if (updated) {
+        sportsStore.setCurrentUser(updated);
+        onSuccess(updated);
+        onClose();
+      }
+    } else {
+      setError(result.error || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
+    }
+  };
+
   const handleQuickLogin = (uname: string) => {
     const targetUser = users.find((u) => u.username === uname);
     if (targetUser) {
-      sportsStore.setCurrentUser(targetUser);
-      onSuccess(targetUser);
-      onClose();
+      if (targetUser.must_change_password) {
+        setMustChangeUser(targetUser);
+      } else {
+        sportsStore.setCurrentUser(targetUser);
+        onSuccess(targetUser);
+        onClose();
+      }
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 relative border border-slate-100 animate-fadeIn">
         <button
           onClick={onClose}
@@ -59,126 +103,198 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
-        <div className="text-center">
-          <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-blue-500/20">
-            <KeyRound className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold font-['Kanit'] text-slate-900">
-            เข้าสู่ระบบจัดการแข่งขัน
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 font-['Prompt']">
-            ระบบบริหารจัดการแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง
-          </p>
-        </div>
-
-        {/* Quick Demo Switcher */}
-        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-            <span className="flex items-center gap-1 text-amber-700">
-              <Sparkles className="w-3.5 h-3.5" /> ทดสอบระบบ 1-คลิก (Quick Login):
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-1.5 text-xs">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('superadmin')}
-              className="p-2 bg-white hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
-            >
-              <span className="text-sm">👑</span>
-              <div>
-                <p className="font-semibold text-slate-900">Super Admin</p>
-                <span className="text-[10px] text-slate-500">ผู้ดูแลสูงสุด</span>
+        {mustChangeUser ? (
+          /* Must Change Password View */
+          <div className="space-y-5">
+            <div className="text-center">
+              <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-500/20">
+                <Lock className="w-7 h-7" />
               </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin')}
-              className="p-2 bg-white hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
-            >
-              <span className="text-sm">🛡️</span>
-              <div>
-                <p className="font-semibold text-slate-900">Admin การแข่งขัน</p>
-                <span className="text-[10px] text-slate-500">จัดการข้อมูล/เกียรติบัตร</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('school_nongwa')}
-              className="p-2 bg-white hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
-            >
-              <span className="text-sm">🏫</span>
-              <div>
-                <p className="font-semibold text-slate-900">รร.บ้านหนองหว้า</p>
-                <span className="text-[10px] text-slate-500">ลงทะเบียนนักเรียน/ทีม</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('referee1')}
-              className="p-2 bg-white hover:bg-purple-50 hover:text-purple-900 hover:border-purple-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
-            >
-              <span className="text-sm">⚖️</span>
-              <div>
-                <p className="font-semibold text-slate-900">กรรมการตัดสิน</p>
-                <span className="text-[10px] text-slate-500">บันทึกผลการแข่งขัน</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Standard Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
-            <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium flex items-center gap-2">
-              <span className="text-rose-500">⚠️</span> {error}
+              <h2 className="text-xl font-bold font-['Kanit'] text-slate-900">
+                กรุณาเปลี่ยนรหัสผ่านใหม่
+              </h2>
+              <p className="text-xs text-slate-600 mt-1 font-['Prompt']">
+                บัญชี <b>{mustChangeUser.full_name}</b> เข้าสู่ระบบด้วยรหัสเริ่มต้น เพื่อความปลอดภัย กรุณากำหนดรหัสผ่านใหม่ของคุณ
+              </p>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              ชื่อผู้ใช้งาน (Username)
-            </label>
-            <input
-              type="text"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="เช่น superadmin, school_nongwa"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-hidden transition-all"
-            />
+            <form onSubmit={handleChangePasswordAndLogin} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium flex items-center gap-2">
+                  <span className="text-rose-500">⚠️</span> {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="กำหนดรหัสผ่านใหม่"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-hidden transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ยืนยันรหัสผ่านใหม่อีกครั้ง
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-hidden transition-all"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMustChangeUser(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-all"
+                >
+                  ย้อนกลับ
+                </button>
+                <button
+                  type="submit"
+                  className="flex-2 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" /> บันทึกและเข้าสู่ระบบ
+                </button>
+              </div>
+            </form>
           </div>
+        ) : (
+          /* Standard Login View */
+          <>
+            {/* Header */}
+            <div className="text-center">
+              <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-blue-600/20">
+                <KeyRound className="w-7 h-7" />
+              </div>
+              <h2 className="text-xl font-bold font-['Kanit'] text-slate-900">
+                เข้าสู่ระบบจัดการแข่งขัน
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 font-['Prompt']">
+                ระบบบริหารจัดการแข่งขันกีฬากลุ่มโรงเรียนสว่างสูงกระสัง
+              </p>
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              รหัสผ่าน (Password)
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-hidden transition-all"
-            />
-          </div>
+            {/* Quick Demo Switcher */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                <span className="flex items-center gap-1 text-amber-700">
+                  <Sparkles className="w-3.5 h-3.5" /> ทดสอบระบบ 1-คลิก (Quick Login):
+                </span>
+              </div>
 
-          <button
-            type="submit"
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
-          >
-            <LogIn className="w-4 h-4" />
-            เข้าสู่ระบบ
-          </button>
-        </form>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('superadmin')}
+                  className="p-2 bg-white hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
+                >
+                  <span className="text-sm">👑</span>
+                  <div>
+                    <p className="font-semibold text-slate-900 leading-tight">Super Admin</p>
+                    <span className="text-[10px] text-slate-500">ผู้ดูแลสูงสุด</span>
+                  </div>
+                </button>
 
-        <div className="text-center text-[11px] text-slate-500">
-          ระบบปลอดภัยด้วย PHP 8.x + MySQL 8.x Prepared Statements & RBAC
-        </div>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('admin')}
+                  className="p-2 bg-white hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
+                >
+                  <span className="text-sm">🛡️</span>
+                  <div>
+                    <p className="font-semibold text-slate-900 leading-tight">Admin</p>
+                    <span className="text-[10px] text-slate-500">จัดแข่งขัน/เกียรติบัตร</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('31030064')}
+                  className="p-2 bg-white hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
+                >
+                  <span className="text-sm">🏫</span>
+                  <div>
+                    <p className="font-semibold text-slate-900 leading-tight">รร.บ้านหนองหว้า</p>
+                    <span className="text-[10px] font-mono text-emerald-700">SMIS: 31030064</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('31030059')}
+                  className="p-2 bg-white hover:bg-purple-50 hover:text-purple-900 hover:border-purple-300 border border-slate-200 rounded-xl transition-all font-medium text-left flex items-center gap-2 shadow-2xs"
+                >
+                  <span className="text-sm">🏫</span>
+                  <div>
+                    <p className="font-semibold text-slate-900 leading-tight">รร.บ้านโคกสว่าง</p>
+                    <span className="text-[10px] font-mono text-purple-700">SMIS: 31030059</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Standard Form */}
+            <form onSubmit={handleLogin} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 font-medium flex items-center gap-2">
+                  <span className="text-rose-500">⚠️</span> {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ชื่อผู้ใช้งาน หรือ รหัส SMIS 8 หลัก (Username)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="เช่น superadmin หรือ 31030064"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-hidden transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  รหัสผ่าน (Password)
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="•••••••• (เริ่มต้น: 123456)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-hidden transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                เข้าสู่ระบบ
+              </button>
+            </form>
+
+            <div className="text-center text-[11px] text-slate-500">
+              กลุ่มโรงเรียนสว่างสูงกระสัง (12 โรงเรียน) | รหัสผ่านเริ่มต้นคือ <span className="font-mono font-semibold text-slate-700">123456</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
